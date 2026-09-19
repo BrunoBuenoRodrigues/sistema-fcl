@@ -1,0 +1,54 @@
+<main class="login-page">
+  <div class="login-card">
+    <div class="login-identidade">
+      <span class="login-marca" aria-hidden="true">FCL</span>
+      <span>
+        <strong>FCL Materiais Elétricos</strong>
+        <small>Portal interno de gestão</small>
+      </span>
+    </div>
+
+    <h1>Sistema FCL</h1>
+    <p>Entre para gerenciar compras, recebimentos e entregas.</p>
+
+    <form (ngSubmit)="entrar()">
+      <div class="campo">
+        <label for="login">Login</label>
+        <input
+          id="login"
+          type="text"
+          name="login"
+          [(ngModel)]="login"
+          maxlength="50"
+          autocomplete="username"
+          placeholder="Digite seu login"
+          required
+        />
+      </div>
+
+      <div class="campo">
+        <label for="senha">Senha</label>
+        <input
+          id="senha"
+          type="password"
+          name="senha"
+          [(ngModel)]="senha"
+          maxlength="128"
+          autocomplete="current-password"
+          placeholder="Digite sua senha"
+          required
+        />
+      </div>
+
+      <p class="erro" *ngIf="mensagemErro" role="alert">
+        {{ mensagemErro }}
+      </p>
+
+      <button type="submit" [disabled]="entrando">
+        {{ entrando ? 'Entrando...' : 'Entrar' }}
+      </button>
+    </form>
+
+    <small class="login-seguranca">Acesso restrito a colaboradores autorizados.</small>
+  </div>
+</main>

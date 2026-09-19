@@ -1,344 +1,4620 @@
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
-<!-- * * * * * * * * * * * The content below * * * * * * * * * * * -->
-<!-- * * * * * * * * * * is only a placeholder * * * * * * * * * * -->
-<!-- * * * * * * * * * * and can be replaced.  * * * * * * * * * * -->
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
-<!-- * * * * * * * * * Delete the template below * * * * * * * * * -->
-<!-- * * * * * * * to get started with your project! * * * * * * * -->
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
+<button
+  *ngIf="logado && menuMobileAberto"
+  class="sidebar-overlay"
+  type="button"
+  aria-label="Fechar menu"
+  (click)="fecharMenuMobile()"
+></button>
 
-<style>
-  :host {
-    --bright-blue: oklch(51.01% 0.274 263.83);
-    --electric-violet: oklch(53.18% 0.28 296.97);
-    --french-violet: oklch(47.66% 0.246 305.88);
-    --vivid-pink: oklch(69.02% 0.277 332.77);
-    --hot-red: oklch(61.42% 0.238 15.34);
-    --orange-red: oklch(63.32% 0.24 31.68);
+<aside
+  *ngIf="logado"
+  id="menu-principal"
+  class="app-sidebar"
+  [class.aberta]="menuMobileAberto"
+  aria-label="Navegação principal"
+>
+  <div class="sidebar-brand">
+    <span class="brand-mark" aria-hidden="true">FCL</span>
+    <span>
+      <strong>Sistema FCL</strong>
+      <small>Gestão interna</small>
+    </span>
+    <button
+      class="sidebar-fechar"
+      type="button"
+      aria-label="Fechar menu"
+      (click)="fecharMenuMobile()"
+    >
+      ×
+    </button>
+  </div>
 
-    --gray-900: oklch(19.37% 0.006 300.98);
-    --gray-700: oklch(36.98% 0.014 302.71);
-    --gray-400: oklch(70.9% 0.015 304.04);
+  <nav class="sidebar-nav">
+    <span class="sidebar-secao">Operação</span>
+    <button
+      class="nav-item"
+      [class.ativo]="telaAtual === 'dashboard'"
+      type="button"
+      (click)="abrirTela('dashboard')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" /></svg>
+      <span>Dashboard</span>
+    </button>
+    <button
+      *ngIf="podeAcessarSolicitacoes()"
+      class="nav-item"
+      [class.ativo]="telaAtual === 'solicitacoes' || telaAtual === 'nova-solicitacao'"
+      type="button"
+      (click)="abrirTela('solicitacoes')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v3h3v15H4V6h3V3zm2 3h6V5H9v1zm-2 4h10m-10 4h10m-10 4h6" /></svg>
+      <span>Solicitações</span>
+    </button>
+    <button
+      *ngIf="podeAcessarPedidos()"
+      class="nav-item"
+      [class.ativo]="telaAtual === 'pedidos' || telaAtual === 'novo-pedido'"
+      type="button"
+      (click)="abrirTela('pedidos')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4zM8 4h8v3H8zM8 11h8m-8 4h5" /></svg>
+      <span>Pedidos</span>
+    </button>
+    <button
+      *ngIf="podeAcessarRecebimentos()"
+      class="nav-item"
+      [class.ativo]="telaAtual === 'recebimentos'"
+      type="button"
+      (click)="abrirTela('recebimentos')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4-9-4zm2 3v7l7 4 7-4v-7m-7 1v10" /></svg>
+      <span>Recebimentos</span>
+    </button>
+    <button
+      class="nav-item"
+      [class.ativo]="telaAtual === 'entregas' || telaAtual === 'nova-entrega'"
+      type="button"
+      (click)="abrirTela('entregas')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7zM7 19a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z" /></svg>
+      <span>Entregas</span>
+    </button>
 
-    --red-to-pink-to-purple-vertical-gradient: linear-gradient(
-      180deg,
-      var(--orange-red) 0%,
-      var(--vivid-pink) 50%,
-      var(--electric-violet) 100%
-    );
+    <span class="sidebar-secao">Cadastros</span>
+    <button
+      class="nav-item"
+      [class.ativo]="telaAtual === 'clientes' || telaAtual === 'formulario-cliente'"
+      type="button"
+      (click)="abrirTela('clientes')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 100-8 4 4 0 000 8zm-7 9a7 7 0 0114 0" /></svg>
+      <span>Clientes</span>
+    </button>
+    <button
+      *ngIf="podeAcessarCadastrosDeCompras()"
+      class="nav-item"
+      [class.ativo]="telaAtual === 'fornecedores' || telaAtual === 'formulario-fornecedor'"
+      type="button"
+      (click)="abrirTela('fornecedores')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V8l8-5 8 5v13M8 21v-7h8v7M8 9h.01M12 9h.01M16 9h.01" /></svg>
+      <span>Fornecedores</span>
+    </button>
+    <button
+      *ngIf="podeAcessarCadastrosDeCompras()"
+      class="nav-item"
+      [class.ativo]="telaAtual === 'produtos' || telaAtual === 'formulario-produto'"
+      type="button"
+      (click)="abrirTela('produtos')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15H4zM8 5V3h8v2M8 10h8m-8 4h8" /></svg>
+      <span>Produtos</span>
+    </button>
+    <button
+      *ngIf="podeGerenciarUsuarios()"
+      class="nav-item"
+      [class.ativo]="telaAtual === 'usuarios' || telaAtual === 'formulario-usuario'"
+      type="button"
+      (click)="abrirTela('usuarios')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a4 4 0 100-8 4 4 0 000 8zm-6 10a6 6 0 0112 0m3-10v6m-3-3h6" /></svg>
+      <span>Usuários</span>
+    </button>
 
-    --red-to-pink-to-purple-horizontal-gradient: linear-gradient(
-      90deg,
-      var(--orange-red) 0%,
-      var(--vivid-pink) 50%,
-      var(--electric-violet) 100%
-    );
+    <span class="sidebar-secao">Gestão</span>
+    <button
+      class="nav-item"
+      [class.ativo]="telaAtual === 'notificacoes'"
+      type="button"
+      (click)="abrirTela('notificacoes')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9zm-8 12h4" /></svg>
+      <span>Notificações</span>
+      <span class="nav-badge" *ngIf="contarNotificacoesNaoLidas() > 0">
+        {{ contarNotificacoesNaoLidas() }}
+      </span>
+    </button>
+    <button
+      *ngIf="podeAcessarRelatorios()"
+      class="nav-item"
+      [class.ativo]="telaAtual === 'relatorios'"
+      type="button"
+      (click)="abrirTela('relatorios')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10h4v10H4zm6 0V4h4v16h-4zm6 0v-7h4v7h-4z" /></svg>
+      <span>Relatórios</span>
+    </button>
+    <button
+      *ngIf="podeAcessarAuditoria()"
+      class="nav-item"
+      [class.ativo]="telaAtual === 'auditoria'"
+      type="button"
+      (click)="abrirTela('auditoria')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.4 8.2-8 9-4.6-.8-8-4-8-9V7l8-4zm-3 9l2 2 4-5" /></svg>
+      <span>Auditoria</span>
+    </button>
+  </nav>
 
-    --pill-accent: var(--bright-blue);
+  <div class="sidebar-usuario">
+    <button type="button" class="usuario-resumo" (click)="abrirTela('minha-conta')">
+      <span class="usuario-avatar">{{ nomeUsuarioAtual.charAt(0) || 'F' }}</span>
+      <span class="usuario-texto">
+        <strong>{{ nomeUsuarioAtual }}</strong>
+        <small>{{ formatarPerfil(perfilUsuario) }}</small>
+      </span>
+    </button>
+    <button class="sidebar-sair" type="button" (click)="sair()">Sair</button>
+  </div>
+</aside>
 
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-      Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
-      "Segoe UI Symbol";
-    box-sizing: border-box;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    display: block;
-    height: 100dvh;
-  }
+<header *ngIf="logado" class="app-header">
+  <button
+    class="menu-mobile-botao"
+    type="button"
+    aria-label="Abrir menu"
+    aria-controls="menu-principal"
+    [attr.aria-expanded]="menuMobileAberto"
+    (click)="alternarMenuMobile()"
+  >
+    <span></span><span></span><span></span>
+  </button>
+  <div class="header-titulo">
+    <small>Área de trabalho</small>
+    <strong>{{ tituloTelaAtual() }}</strong>
+  </div>
+  <div class="header-acoes">
+    <button
+      class="header-notificacoes"
+      type="button"
+      aria-label="Abrir notificações"
+      (click)="abrirTela('notificacoes')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9zm-8 12h4" /></svg>
+      <span *ngIf="contarNotificacoesNaoLidas() > 0">{{ contarNotificacoesNaoLidas() }}</span>
+    </button>
+    <button class="header-usuario" type="button" (click)="abrirTela('minha-conta')">
+      <span class="usuario-avatar">{{ nomeUsuarioAtual.charAt(0) || 'F' }}</span>
+      <span>
+        <strong>{{ nomeUsuarioAtual }}</strong>
+        <small>{{ formatarPerfil(perfilUsuario) }}</small>
+      </span>
+    </button>
+  </div>
+</header>
 
-  h1 {
-    font-size: 3.125rem;
-    color: var(--gray-900);
-    font-weight: 500;
-    line-height: 100%;
-    letter-spacing: -0.125rem;
-    margin: 0;
-    font-family: "Inter Tight", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-      Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
-      "Segoe UI Symbol";
-  }
+<aside
+  *ngIf="logado && avisoNovaNotificacao"
+  class="alerta-nova-notificacao"
+  role="status"
+  aria-live="polite"
+>
+  <div>
+    <strong>Nova notificação</strong>
+    <p>{{ avisoNovaNotificacao }}</p>
+  </div>
+  <div class="acoes-alerta-notificacao">
+    <button type="button" (click)="abrirTela('notificacoes')">Ver</button>
+    <button
+      class="botao-secundario"
+      type="button"
+      (click)="dispensarAvisoNovaNotificacao()"
+    >
+      Fechar
+    </button>
+  </div>
+</aside>
 
-  p {
-    margin: 0;
-    color: var(--gray-700);
-  }
+<div *ngIf="logado && telaAtual === 'dashboard'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>Bem-vindo ao Sistema FCL</h1>
 
-  main {
-    width: 100%;
-    min-height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 1rem;
-    box-sizing: inherit;
-    position: relative;
-  }
+    <p>Perfil: {{ formatarPerfil(perfilUsuario) }}</p>
 
-  .angular-logo {
-    max-width: 9.2rem;
-  }
+    <p *ngIf="carregandoResumoDashboard">Carregando resumo operacional...</p>
+    <p class="erro" *ngIf="erroResumoDashboard">{{ erroResumoDashboard }}</p>
 
-  .content {
-    display: flex;
-    justify-content: space-around;
-    width: 100%;
-    max-width: 700px;
-    margin-bottom: 3rem;
-  }
+    <section class="resumo-dashboard" *ngIf="!carregandoResumoDashboard && resumoDashboard">
+      <h2>Pendências operacionais</h2>
+      <p class="data-relatorio">
+        Atualizado em {{ resumoDashboard.gerado_em | date:'dd/MM/yyyy HH:mm' }}
+      </p>
 
-  .content h1 {
-    margin-top: 1.75rem;
-  }
+      <div class="indicadores-grid">
+        <button
+          *ngIf="resumoDashboard.solicitacoes_em_andamento !== null"
+          class="indicador-card atalho-dashboard"
+          type="button"
+          (click)="abrirTela('solicitacoes')"
+        >
+          <span>{{ perfilUsuario === 'FUNCIONARIO' ? 'Minhas solicitações' : 'Solicitações' }}</span>
+          <strong>{{ resumoDashboard.solicitacoes_em_andamento }}</strong>
+          <small>Em andamento</small>
+        </button>
 
-  .content p {
-    margin-top: 1.5rem;
-  }
+        <button
+          *ngIf="resumoDashboard.pedidos_aguardando_recebimento !== null"
+          class="indicador-card indicador-informativo atalho-dashboard"
+          type="button"
+          (click)="abrirTela('recebimentos')"
+        >
+          <span>Pedidos</span>
+          <strong>{{ resumoDashboard.pedidos_aguardando_recebimento }}</strong>
+          <small>Aguardando recebimento</small>
+        </button>
 
-  .divider {
-    width: 1px;
-    background: var(--red-to-pink-to-purple-vertical-gradient);
-    margin-inline: 0.5rem;
-  }
+        <button
+          class="indicador-card atalho-dashboard"
+          type="button"
+          (click)="abrirTela('entregas')"
+        >
+          <span>{{ perfilUsuario === 'ENTREGADOR' ? 'Minhas entregas' : 'Entregas' }}</span>
+          <strong>{{ resumoDashboard.entregas_em_aberto }}</strong>
+          <small>Em aberto</small>
+        </button>
 
-  .pill-group {
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    flex-wrap: wrap;
-    gap: 1.25rem;
-  }
-
-  .pill {
-    display: flex;
-    align-items: center;
-    --pill-accent: var(--bright-blue);
-    background: color-mix(in srgb, var(--pill-accent) 5%, transparent);
-    color: var(--pill-accent);
-    padding-inline: 0.75rem;
-    padding-block: 0.375rem;
-    border-radius: 2.75rem;
-    border: 0;
-    transition: background 0.3s ease;
-    font-family: var(--inter-font);
-    font-size: 0.875rem;
-    font-style: normal;
-    font-weight: 500;
-    line-height: 1.4rem;
-    letter-spacing: -0.00875rem;
-    text-decoration: none;
-    white-space: nowrap;
-  }
-
-  .pill:hover {
-    background: color-mix(in srgb, var(--pill-accent) 15%, transparent);
-  }
-
-  .pill-group .pill:nth-child(6n + 1) {
-    --pill-accent: var(--bright-blue);
-  }
-  .pill-group .pill:nth-child(6n + 2) {
-    --pill-accent: var(--electric-violet);
-  }
-  .pill-group .pill:nth-child(6n + 3) {
-    --pill-accent: var(--french-violet);
-  }
-
-  .pill-group .pill:nth-child(6n + 4),
-  .pill-group .pill:nth-child(6n + 5),
-  .pill-group .pill:nth-child(6n + 6) {
-    --pill-accent: var(--hot-red);
-  }
-
-  .pill-group svg {
-    margin-inline-start: 0.25rem;
-  }
-
-  .social-links {
-    display: flex;
-    align-items: center;
-    gap: 0.73rem;
-    margin-top: 1.5rem;
-  }
-
-  .social-links path {
-    transition: fill 0.3s ease;
-    fill: var(--gray-400);
-  }
-
-  .social-links a:hover svg path {
-    fill: var(--gray-900);
-  }
-
-  @media screen and (max-width: 650px) {
-    .content {
-      flex-direction: column;
-      width: max-content;
-    }
-
-    .divider {
-      height: 1px;
-      width: 100%;
-      background: var(--red-to-pink-to-purple-horizontal-gradient);
-      margin-block: 1.5rem;
-    }
-  }
-</style>
-
-<main class="main">
-  <div class="content">
-    <div class="left-side">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 982 239"
-        fill="none"
-        class="angular-logo"
-      >
-        <g clip-path="url(#a)">
-          <path
-            fill="url(#b)"
-            d="M388.676 191.625h30.849L363.31 31.828h-35.758l-56.215 159.797h30.848l13.174-39.356h60.061l13.256 39.356Zm-65.461-62.675 21.602-64.311h1.227l21.602 64.311h-44.431Zm126.831-7.527v70.202h-28.23V71.839h27.002v20.374h1.392c2.782-6.71 7.2-12.028 13.255-15.956 6.056-3.927 13.584-5.89 22.503-5.89 8.264 0 15.465 1.8 21.684 5.318 6.137 3.518 10.964 8.673 14.319 15.382 3.437 6.71 5.074 14.81 4.992 24.383v76.175h-28.23v-71.92c0-8.019-2.046-14.237-6.219-18.819-4.173-4.5-9.819-6.791-17.102-6.791-4.91 0-9.328 1.063-13.174 3.272-3.846 2.128-6.792 5.237-9.001 9.328-2.046 4.009-3.191 8.918-3.191 14.728ZM589.233 239c-10.147 0-18.82-1.391-26.103-4.091-7.282-2.7-13.092-6.382-17.511-10.964-4.418-4.582-7.528-9.655-9.164-15.219l25.448-6.136c1.145 2.372 2.782 4.663 4.991 6.954 2.209 2.291 5.155 4.255 8.837 5.81 3.683 1.554 8.428 2.291 14.074 2.291 8.019 0 14.647-1.964 19.884-5.81 5.237-3.845 7.856-10.227 7.856-19.064v-22.665h-1.391c-1.473 2.946-3.601 5.892-6.383 9.001-2.782 3.109-6.464 5.645-10.965 7.691-4.582 2.046-10.228 3.109-17.101 3.109-9.165 0-17.511-2.209-25.039-6.545-7.446-4.337-13.42-10.883-17.757-19.474-4.418-8.673-6.628-19.473-6.628-32.565 0-13.091 2.21-24.301 6.628-33.383 4.419-9.082 10.311-15.955 17.839-20.7 7.528-4.746 15.874-7.037 25.039-7.037 7.037 0 12.846 1.145 17.347 3.518 4.582 2.373 8.182 5.236 10.883 8.51 2.7 3.272 4.746 6.382 6.137 9.327h1.554v-19.8h27.821v121.749c0 10.228-2.454 18.737-7.364 25.447-4.91 6.709-11.538 11.7-20.048 15.055-8.509 3.355-18.165 4.991-28.884 4.991Zm.245-71.266c5.974 0 11.047-1.473 15.302-4.337 4.173-2.945 7.446-7.118 9.573-12.519 2.21-5.482 3.274-12.027 3.274-19.637 0-7.609-1.064-14.155-3.274-19.8-2.127-5.646-5.318-10.064-9.491-13.255-4.174-3.11-9.329-4.746-15.384-4.746s-11.537 1.636-15.792 4.91c-4.173 3.272-7.365 7.772-9.492 13.418-2.128 5.727-3.191 12.191-3.191 19.392 0 7.2 1.063 13.745 3.273 19.228 2.127 5.482 5.318 9.736 9.573 12.764 4.174 3.027 9.41 4.582 15.629 4.582Zm141.56-26.51V71.839h28.23v119.786h-27.412v-21.273h-1.227c-2.7 6.709-7.119 12.191-13.338 16.446-6.137 4.255-13.747 6.382-22.748 6.382-7.855 0-14.81-1.718-20.783-5.237-5.974-3.518-10.72-8.591-14.075-15.382-3.355-6.709-5.073-14.891-5.073-24.464V71.839h28.312v71.921c0 7.609 2.046 13.664 6.219 18.083 4.173 4.5 9.655 6.709 16.365 6.709 4.173 0 8.183-.982 12.111-3.028 3.927-2.045 7.118-5.072 9.655-9.082 2.537-4.091 3.764-9.164 3.764-15.218Zm65.707-109.395v159.796h-28.23V31.828h28.23Zm44.841 162.169c-7.61 0-14.402-1.391-20.457-4.091-6.055-2.7-10.883-6.791-14.32-12.109-3.518-5.319-5.237-11.946-5.237-19.801 0-6.791 1.228-12.355 3.765-16.773 2.536-4.419 5.891-7.937 10.228-10.637 4.337-2.618 9.164-4.664 14.647-6.055 5.4-1.391 11.046-2.373 16.856-3.027 7.037-.737 12.683-1.391 17.102-1.964 4.337-.573 7.528-1.555 9.574-2.782 1.963-1.309 3.027-3.273 3.027-5.973v-.491c0-5.891-1.718-10.391-5.237-13.664-3.518-3.191-8.51-4.828-15.056-4.828-6.955 0-12.356 1.473-16.447 4.5-4.009 3.028-6.71 6.546-8.183 10.719l-26.348-3.764c2.046-7.282 5.483-13.336 10.31-18.328 4.746-4.909 10.638-8.59 17.511-11.045 6.955-2.455 14.565-3.682 22.912-3.682 5.809 0 11.537.654 17.265 2.045s10.965 3.6 15.711 6.71c4.746 3.109 8.51 7.282 11.455 12.6 2.864 5.318 4.337 11.946 4.337 19.883v80.184h-27.166v-16.446h-.9c-1.719 3.355-4.092 6.464-7.201 9.328-3.109 2.864-6.955 5.237-11.619 6.955-4.828 1.718-10.229 2.536-16.529 2.536Zm7.364-20.701c5.646 0 10.556-1.145 14.729-3.354 4.173-2.291 7.364-5.237 9.655-9.001 2.292-3.763 3.355-7.854 3.355-12.273v-14.155c-.9.737-2.373 1.391-4.5 2.046-2.128.654-4.419 1.145-7.037 1.636-2.619.491-5.155.9-7.692 1.227-2.537.328-4.746.655-6.628.901-4.173.572-8.019 1.472-11.292 2.781-3.355 1.31-5.973 3.11-7.855 5.401-1.964 2.291-2.864 5.318-2.864 8.918 0 5.237 1.882 9.164 5.728 11.782 3.682 2.782 8.51 4.091 14.401 4.091Zm64.643 18.328V71.839h27.412v19.965h1.227c2.21-6.955 5.974-12.274 11.292-16.038 5.319-3.763 11.456-5.645 18.329-5.645 1.555 0 3.355.082 5.237.163 1.964.164 3.601.328 4.91.573v25.938c-1.227-.41-3.109-.819-5.646-1.146a58.814 58.814 0 0 0-7.446-.49c-5.155 0-9.738 1.145-13.829 3.354-4.091 2.209-7.282 5.236-9.655 9.164-2.373 3.927-3.519 8.427-3.519 13.5v70.448h-28.312ZM222.077 39.192l-8.019 125.923L137.387 0l84.69 39.192Zm-53.105 162.825-57.933 33.056-57.934-33.056 11.783-28.556h92.301l11.783 28.556ZM111.039 62.675l30.357 73.803H80.681l30.358-73.803ZM7.937 165.115 0 39.192 84.69 0 7.937 165.115Z"
-          />
-          <path
-            fill="url(#c)"
-            d="M388.676 191.625h30.849L363.31 31.828h-35.758l-56.215 159.797h30.848l13.174-39.356h60.061l13.256 39.356Zm-65.461-62.675 21.602-64.311h1.227l21.602 64.311h-44.431Zm126.831-7.527v70.202h-28.23V71.839h27.002v20.374h1.392c2.782-6.71 7.2-12.028 13.255-15.956 6.056-3.927 13.584-5.89 22.503-5.89 8.264 0 15.465 1.8 21.684 5.318 6.137 3.518 10.964 8.673 14.319 15.382 3.437 6.71 5.074 14.81 4.992 24.383v76.175h-28.23v-71.92c0-8.019-2.046-14.237-6.219-18.819-4.173-4.5-9.819-6.791-17.102-6.791-4.91 0-9.328 1.063-13.174 3.272-3.846 2.128-6.792 5.237-9.001 9.328-2.046 4.009-3.191 8.918-3.191 14.728ZM589.233 239c-10.147 0-18.82-1.391-26.103-4.091-7.282-2.7-13.092-6.382-17.511-10.964-4.418-4.582-7.528-9.655-9.164-15.219l25.448-6.136c1.145 2.372 2.782 4.663 4.991 6.954 2.209 2.291 5.155 4.255 8.837 5.81 3.683 1.554 8.428 2.291 14.074 2.291 8.019 0 14.647-1.964 19.884-5.81 5.237-3.845 7.856-10.227 7.856-19.064v-22.665h-1.391c-1.473 2.946-3.601 5.892-6.383 9.001-2.782 3.109-6.464 5.645-10.965 7.691-4.582 2.046-10.228 3.109-17.101 3.109-9.165 0-17.511-2.209-25.039-6.545-7.446-4.337-13.42-10.883-17.757-19.474-4.418-8.673-6.628-19.473-6.628-32.565 0-13.091 2.21-24.301 6.628-33.383 4.419-9.082 10.311-15.955 17.839-20.7 7.528-4.746 15.874-7.037 25.039-7.037 7.037 0 12.846 1.145 17.347 3.518 4.582 2.373 8.182 5.236 10.883 8.51 2.7 3.272 4.746 6.382 6.137 9.327h1.554v-19.8h27.821v121.749c0 10.228-2.454 18.737-7.364 25.447-4.91 6.709-11.538 11.7-20.048 15.055-8.509 3.355-18.165 4.991-28.884 4.991Zm.245-71.266c5.974 0 11.047-1.473 15.302-4.337 4.173-2.945 7.446-7.118 9.573-12.519 2.21-5.482 3.274-12.027 3.274-19.637 0-7.609-1.064-14.155-3.274-19.8-2.127-5.646-5.318-10.064-9.491-13.255-4.174-3.11-9.329-4.746-15.384-4.746s-11.537 1.636-15.792 4.91c-4.173 3.272-7.365 7.772-9.492 13.418-2.128 5.727-3.191 12.191-3.191 19.392 0 7.2 1.063 13.745 3.273 19.228 2.127 5.482 5.318 9.736 9.573 12.764 4.174 3.027 9.41 4.582 15.629 4.582Zm141.56-26.51V71.839h28.23v119.786h-27.412v-21.273h-1.227c-2.7 6.709-7.119 12.191-13.338 16.446-6.137 4.255-13.747 6.382-22.748 6.382-7.855 0-14.81-1.718-20.783-5.237-5.974-3.518-10.72-8.591-14.075-15.382-3.355-6.709-5.073-14.891-5.073-24.464V71.839h28.312v71.921c0 7.609 2.046 13.664 6.219 18.083 4.173 4.5 9.655 6.709 16.365 6.709 4.173 0 8.183-.982 12.111-3.028 3.927-2.045 7.118-5.072 9.655-9.082 2.537-4.091 3.764-9.164 3.764-15.218Zm65.707-109.395v159.796h-28.23V31.828h28.23Zm44.841 162.169c-7.61 0-14.402-1.391-20.457-4.091-6.055-2.7-10.883-6.791-14.32-12.109-3.518-5.319-5.237-11.946-5.237-19.801 0-6.791 1.228-12.355 3.765-16.773 2.536-4.419 5.891-7.937 10.228-10.637 4.337-2.618 9.164-4.664 14.647-6.055 5.4-1.391 11.046-2.373 16.856-3.027 7.037-.737 12.683-1.391 17.102-1.964 4.337-.573 7.528-1.555 9.574-2.782 1.963-1.309 3.027-3.273 3.027-5.973v-.491c0-5.891-1.718-10.391-5.237-13.664-3.518-3.191-8.51-4.828-15.056-4.828-6.955 0-12.356 1.473-16.447 4.5-4.009 3.028-6.71 6.546-8.183 10.719l-26.348-3.764c2.046-7.282 5.483-13.336 10.31-18.328 4.746-4.909 10.638-8.59 17.511-11.045 6.955-2.455 14.565-3.682 22.912-3.682 5.809 0 11.537.654 17.265 2.045s10.965 3.6 15.711 6.71c4.746 3.109 8.51 7.282 11.455 12.6 2.864 5.318 4.337 11.946 4.337 19.883v80.184h-27.166v-16.446h-.9c-1.719 3.355-4.092 6.464-7.201 9.328-3.109 2.864-6.955 5.237-11.619 6.955-4.828 1.718-10.229 2.536-16.529 2.536Zm7.364-20.701c5.646 0 10.556-1.145 14.729-3.354 4.173-2.291 7.364-5.237 9.655-9.001 2.292-3.763 3.355-7.854 3.355-12.273v-14.155c-.9.737-2.373 1.391-4.5 2.046-2.128.654-4.419 1.145-7.037 1.636-2.619.491-5.155.9-7.692 1.227-2.537.328-4.746.655-6.628.901-4.173.572-8.019 1.472-11.292 2.781-3.355 1.31-5.973 3.11-7.855 5.401-1.964 2.291-2.864 5.318-2.864 8.918 0 5.237 1.882 9.164 5.728 11.782 3.682 2.782 8.51 4.091 14.401 4.091Zm64.643 18.328V71.839h27.412v19.965h1.227c2.21-6.955 5.974-12.274 11.292-16.038 5.319-3.763 11.456-5.645 18.329-5.645 1.555 0 3.355.082 5.237.163 1.964.164 3.601.328 4.91.573v25.938c-1.227-.41-3.109-.819-5.646-1.146a58.814 58.814 0 0 0-7.446-.49c-5.155 0-9.738 1.145-13.829 3.354-4.091 2.209-7.282 5.236-9.655 9.164-2.373 3.927-3.519 8.427-3.519 13.5v70.448h-28.312ZM222.077 39.192l-8.019 125.923L137.387 0l84.69 39.192Zm-53.105 162.825-57.933 33.056-57.934-33.056 11.783-28.556h92.301l11.783 28.556ZM111.039 62.675l30.357 73.803H80.681l30.358-73.803ZM7.937 165.115 0 39.192 84.69 0 7.937 165.115Z"
-          />
-        </g>
-        <defs>
-          <radialGradient
-            id="c"
-            cx="0"
-            cy="0"
-            r="1"
-            gradientTransform="rotate(118.122 171.182 60.81) scale(205.794)"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop stop-color="#FF41F8" />
-            <stop offset=".707" stop-color="#FF41F8" stop-opacity=".5" />
-            <stop offset="1" stop-color="#FF41F8" stop-opacity="0" />
-          </radialGradient>
-          <linearGradient
-            id="b"
-            x1="0"
-            x2="982"
-            y1="192"
-            y2="192"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop stop-color="#F0060B" />
-            <stop offset="0" stop-color="#F0070C" />
-            <stop offset=".526" stop-color="#CC26D5" />
-            <stop offset="1" stop-color="#7702FF" />
-          </linearGradient>
-          <clipPath id="a"><path fill="#fff" d="M0 0h982v239H0z" /></clipPath>
-        </defs>
-      </svg>
-      <h1>Hello, {{ title() }}</h1>
-      <p>Congratulations! Your app is running. 🎉</p>
-    </div>
-    <div class="divider" role="separator" aria-label="Divider"></div>
-    <div class="right-side">
-      <div class="pill-group">
-        @for (item of [
-          { title: 'Explore the Docs', link: 'https://angular.dev' },
-          { title: 'Learn with Tutorials', link: 'https://angular.dev/tutorials' },
-          { title: 'Prompt and best practices for AI', link: 'https://angular.dev/ai/develop-with-ai'},
-          { title: 'CLI Docs', link: 'https://angular.dev/tools/cli' },
-          { title: 'Angular Language Service', link: 'https://angular.dev/tools/language-service' },
-          { title: 'Angular DevTools', link: 'https://angular.dev/tools/devtools' },
-        ]; track item.title) {
-          <a
-            class="pill"
-            [href]="item.link"
-            target="_blank"
-            rel="noopener"
-          >
-            <span>{{ item.title }}</span>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              height="14"
-              viewBox="0 -960 960 960"
-              width="14"
-              fill="currentColor"
-            >
-              <path
-                d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h560v-280h80v280q0 33-23.5 56.5T760-120H200Zm188-212-56-56 372-372H560v-80h280v280h-80v-144L388-332Z"
-              />
-            </svg>
-          </a>
-        }
+        <button
+          class="indicador-card atalho-dashboard"
+          type="button"
+          (click)="abrirTela('notificacoes')"
+        >
+          <span>Notificações</span>
+          <strong>{{ contarNotificacoesNaoLidas() }}</strong>
+          <small>Não lidas</small>
+        </button>
       </div>
-      <div class="social-links">
-        <a
-          href="https://github.com/angular/angular"
-          aria-label="Github"
-          target="_blank"
-          rel="noopener"
+    </section>
+
+    <div class="menu">
+      <button
+        *ngIf="podeAcessarSolicitacoes()"
+        (click)="abrirTela('solicitacoes')"
+      >
+        Solicitações
+      </button>
+      <button *ngIf="podeAcessarPedidos()" (click)="abrirTela('pedidos')">
+        Pedidos
+      </button>
+      <button
+        *ngIf="podeAcessarRecebimentos()"
+        (click)="abrirTela('recebimentos')"
+      >
+        Recebimentos
+      </button>
+      <button (click)="abrirTela('entregas')">Entregas</button>
+      <button (click)="abrirTela('clientes')">Clientes</button>
+      <button
+        *ngIf="podeAcessarCadastrosDeCompras()"
+        (click)="abrirTela('fornecedores')"
+      >
+        Fornecedores
+      </button>
+      <button
+        *ngIf="podeAcessarCadastrosDeCompras()"
+        (click)="abrirTela('produtos')"
+      >
+        Produtos
+      </button>
+      <button (click)="abrirTela('notificacoes')">
+        Notificações
+        <span *ngIf="contarNotificacoesNaoLidas() > 0">
+          ({{ contarNotificacoesNaoLidas() }})
+        </span>
+      </button>
+      <button
+        *ngIf="podeAcessarRelatorios()"
+        (click)="abrirTela('relatorios')"
+      >
+        Relatórios
+      </button>
+      <button
+        *ngIf="podeAcessarAuditoria()"
+        (click)="abrirTela('auditoria')"
+      >
+        Auditoria
+      </button>
+      <button
+        *ngIf="podeGerenciarUsuarios()"
+        (click)="abrirTela('usuarios')"
+      >
+        Usuários
+      </button>
+      <button type="button" (click)="abrirTela('minha-conta')">
+        Minha conta
+      </button>
+      <button class="botao-sair" type="button" (click)="sair()">Sair</button>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'minha-conta'" class="dashboard">
+  <div class="dashboard-card painel-minha-conta">
+    <h1>Minha conta</h1>
+
+    <button type="button" (click)="abrirTela('dashboard')">
+      Voltar
+    </button>
+
+    <div class="resumo-minha-conta">
+      <p><strong>Nome:</strong> {{ nomeUsuarioAtual }}</p>
+      <p><strong>Login:</strong> {{ login }}</p>
+      <p><strong>Perfil:</strong> {{ formatarPerfil(perfilUsuario) }}</p>
+    </div>
+
+    <h2>Alterar senha</h2>
+
+    <form (ngSubmit)="alterarPropriaSenha()">
+      <input
+        class="campo-usuario-oculto"
+        type="text"
+        name="login_conta"
+        [value]="login"
+        autocomplete="username"
+        tabindex="-1"
+        aria-hidden="true"
+      />
+
+      <div class="campo">
+        <label for="senha-atual">Senha atual</label>
+        <input
+          id="senha-atual"
+          type="password"
+          name="senha_atual"
+          [(ngModel)]="formularioMinhaSenha.senha_atual"
+          autocomplete="current-password"
+          required
+        />
+      </div>
+
+      <div class="campo">
+        <label for="nova-senha">Nova senha</label>
+        <input
+          id="nova-senha"
+          type="password"
+          name="nova_senha"
+          [(ngModel)]="formularioMinhaSenha.nova_senha"
+          autocomplete="new-password"
+          minlength="6"
+          required
+        />
+        <small>Utilize pelo menos 6 caracteres.</small>
+      </div>
+
+      <div class="campo">
+        <label for="confirmar-nova-senha">Confirmar nova senha</label>
+        <input
+          id="confirmar-nova-senha"
+          type="password"
+          name="confirmar_nova_senha"
+          [(ngModel)]="formularioMinhaSenha.confirmar_nova_senha"
+          autocomplete="new-password"
+          minlength="6"
+          required
+        />
+      </div>
+
+      <p class="erro" *ngIf="erroMinhaConta">{{ erroMinhaConta }}</p>
+      <p class="sucesso" *ngIf="mensagemMinhaConta">{{ mensagemMinhaConta }}</p>
+
+      <button type="submit" [disabled]="salvandoMinhaSenha">
+        {{ salvandoMinhaSenha ? 'Alterando...' : 'Alterar senha' }}
+      </button>
+    </form>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'auditoria'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>Auditoria</h1>
+
+    <button type="button" (click)="abrirTela('dashboard')">
+      Voltar
+    </button>
+
+    <button
+      class="botao-novo"
+      type="button"
+      [disabled]="carregandoAuditoria || exportandoAuditoria || periodoAuditoriaInvalido() || obterEventosAuditoriaFiltrados().length === 0"
+      (click)="exportarAuditoriaCsv()"
+    >
+      {{ exportandoAuditoria ? 'Exportando...' : 'Exportar CSV' }}
+    </button>
+
+    <p *ngIf="carregandoAuditoria">Carregando eventos...</p>
+    <p class="erro" *ngIf="erroAuditoria">{{ erroAuditoria }}</p>
+    <p class="sucesso" *ngIf="mensagemAuditoria">{{ mensagemAuditoria }}</p>
+
+    <div
+      class="filtros-listagem"
+      *ngIf="!carregandoAuditoria && eventosAuditoria.length"
+    >
+      <div class="campo">
+        <label for="busca-auditoria">Pesquisar</label>
+        <input
+          id="busca-auditoria"
+          type="search"
+          [(ngModel)]="filtroAuditoria.busca"
+          (ngModelChange)="reiniciarPagina('auditoria')"
+          placeholder="Usuário, ação ou descrição"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="usuario-auditoria">Usuário responsável</label>
+        <select
+          id="usuario-auditoria"
+          [(ngModel)]="filtroAuditoria.usuario"
+          (ngModelChange)="reiniciarPagina('auditoria')"
         >
-          <svg
-            width="25"
-            height="24"
-            viewBox="0 0 25 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            alt="Github"
+          <option value="">Todos os usuários</option>
+          <option
+            *ngFor="let usuario of obterUsuariosAuditoria()"
+            [value]="usuario.id_usuario"
           >
-            <path
-              d="M12.3047 0C5.50634 0 0 5.50942 0 12.3047C0 17.7423 3.52529 22.3535 8.41332 23.9787C9.02856 24.0946 9.25414 23.7142 9.25414 23.3871C9.25414 23.0949 9.24389 22.3207 9.23876 21.2953C5.81601 22.0377 5.09414 19.6444 5.09414 19.6444C4.53427 18.2243 3.72524 17.8449 3.72524 17.8449C2.61064 17.082 3.81137 17.0973 3.81137 17.0973C5.04697 17.1835 5.69604 18.3647 5.69604 18.3647C6.79321 20.2463 8.57636 19.7029 9.27978 19.3881C9.39052 18.5924 9.70736 18.0499 10.0591 17.7423C7.32641 17.4347 4.45429 16.3765 4.45429 11.6618C4.45429 10.3185 4.9311 9.22133 5.72065 8.36C5.58222 8.04931 5.16694 6.79833 5.82831 5.10337C5.82831 5.10337 6.85883 4.77319 9.2121 6.36459C10.1965 6.09082 11.2424 5.95546 12.2883 5.94931C13.3342 5.95546 14.3801 6.09082 15.3644 6.36459C17.7023 4.77319 18.7328 5.10337 18.7328 5.10337C19.3942 6.79833 18.9789 8.04931 18.8559 8.36C19.6403 9.22133 20.1171 10.3185 20.1171 11.6618C20.1171 16.3888 17.2409 17.4296 14.5031 17.7321C14.9338 18.1012 15.3337 18.8559 15.3337 20.0084C15.3337 21.6552 15.3183 22.978 15.3183 23.3779C15.3183 23.7009 15.5336 24.0854 16.1642 23.9623C21.0871 22.3484 24.6094 17.7341 24.6094 12.3047C24.6094 5.50942 19.0999 0 12.3047 0Z"
-            />
-          </svg>
-        </a>
-        <a
-          href="https://x.com/angular"
-          aria-label="X"
-          target="_blank"
-          rel="noopener"
+            {{ usuario.nome }} ({{ usuario.login }})
+          </option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="tipo-auditoria">Tipo de registro</label>
+        <select
+          id="tipo-auditoria"
+          [(ngModel)]="filtroAuditoria.tipo"
+          (ngModelChange)="reiniciarPagina('auditoria')"
         >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            alt="X"
-          >
-            <path
-              d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
-            />
-          </svg>
-        </a>
-        <a
-          href="https://www.youtube.com/channel/UCbn1OgGei-DV7aSRo_HaAiw"
-          aria-label="Youtube"
-          target="_blank"
-          rel="noopener"
+          <option value="">Todos os tipos</option>
+          <option *ngFor="let tipo of obterTiposAuditoria()" [value]="tipo">
+            {{ formatarTipoAuditoria(tipo) }}
+          </option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="acao-auditoria">Ação</label>
+        <select
+          id="acao-auditoria"
+          [(ngModel)]="filtroAuditoria.acao"
+          (ngModelChange)="reiniciarPagina('auditoria')"
         >
-          <svg
-            width="29"
-            height="20"
-            viewBox="0 0 29 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            alt="Youtube"
+          <option value="">Todas as ações</option>
+          <option *ngFor="let acao of obterAcoesAuditoria()" [value]="acao">
+            {{ formatarAcaoAuditoria(acao) }}
+          </option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="data-inicio-auditoria">Data inicial</label>
+        <input
+          id="data-inicio-auditoria"
+          type="date"
+          [(ngModel)]="filtroAuditoria.data_inicio"
+          (ngModelChange)="reiniciarPagina('auditoria')"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="data-fim-auditoria">Data final</label>
+        <input
+          id="data-fim-auditoria"
+          type="date"
+          [(ngModel)]="filtroAuditoria.data_fim"
+          (ngModelChange)="reiniciarPagina('auditoria')"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="ordem-auditoria">Ordenar por</label>
+        <select
+          id="ordem-auditoria"
+          [(ngModel)]="filtroAuditoria.ordem"
+          (ngModelChange)="reiniciarPagina('auditoria')"
+        >
+          <option value="recentes">Mais recentes</option>
+          <option value="antigos">Mais antigos</option>
+        </select>
+      </div>
+
+      <button
+        class="botao-secundario"
+        type="button"
+        (click)="limparFiltrosAuditoria()"
+      >
+        Limpar filtros
+      </button>
+    </div>
+
+    <p class="erro" *ngIf="periodoAuditoriaInvalido()">
+      A data inicial não pode ser posterior à data final.
+    </p>
+
+    <p *ngIf="!carregandoAuditoria">
+      Encontrados {{ obterEventosAuditoriaFiltrados().length }} de
+      {{ eventosAuditoria.length }} eventos
+    </p>
+
+    <p
+      class="aviso"
+      *ngIf="eventosAuditoria.length && obterEventosAuditoriaFiltrados().length === 0"
+    >
+      Nenhum evento corresponde aos filtros informados.
+    </p>
+
+    <div class="paginacao" *ngIf="obterEventosAuditoriaFiltrados().length">
+      <label>
+        Por página
+        <select
+          [(ngModel)]="paginacao.auditoria.porPagina"
+          (ngModelChange)="reiniciarPagina('auditoria')"
+        >
+          <option *ngFor="let opcao of opcoesItensPorPagina" [ngValue]="opcao">
+            {{ opcao }}
+          </option>
+        </select>
+      </label>
+
+      <div class="navegacao-paginacao">
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterEventosAuditoriaFiltrados().length, 'auditoria') === 1"
+          (click)="alterarPagina('auditoria', obterPaginaAtual(obterEventosAuditoriaFiltrados().length, 'auditoria') - 1, obterEventosAuditoriaFiltrados().length)"
+        >
+          Anterior
+        </button>
+        <span>
+          Página {{ obterPaginaAtual(obterEventosAuditoriaFiltrados().length, 'auditoria') }} de
+          {{ obterTotalPaginas(obterEventosAuditoriaFiltrados().length, 'auditoria') }}
+        </span>
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterEventosAuditoriaFiltrados().length, 'auditoria') === obterTotalPaginas(obterEventosAuditoriaFiltrados().length, 'auditoria')"
+          (click)="alterarPagina('auditoria', obterPaginaAtual(obterEventosAuditoriaFiltrados().length, 'auditoria') + 1, obterEventosAuditoriaFiltrados().length)"
+        >
+          Próxima
+        </button>
+      </div>
+    </div>
+
+    <div class="lista-auditoria">
+      <article
+        class="auditoria-card"
+        *ngFor="let evento of paginarLista(obterEventosAuditoriaFiltrados(), 'auditoria')"
+      >
+        <div class="cabecalho-auditoria">
+          <h3>{{ formatarAcaoAuditoria(evento.acao) }}</h3>
+          <time>{{ evento.data_hora | date:'dd/MM/yyyy HH:mm:ss' }}</time>
+        </div>
+
+        <p>
+          <strong>Usuário:</strong>
+          {{ evento.usuario_nome }} ({{ evento.usuario_login }})
+        </p>
+        <p>
+          <strong>Registro:</strong>
+          {{ formatarTipoAuditoria(evento.tipo_registro) }} #{{ evento.id_registro }}
+        </p>
+        <p *ngIf="evento.descricao">
+          <strong>Detalhes:</strong> {{ evento.descricao }}
+        </p>
+      </article>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'relatorios'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>Relatórios gerenciais</h1>
+
+    <button type="button" (click)="abrirTela('dashboard')">
+      Voltar
+    </button>
+
+    <div class="filtros-relatorio">
+      <div class="campo">
+        <label for="relatorio-data-inicio">Data inicial</label>
+        <input
+          id="relatorio-data-inicio"
+          type="date"
+          name="relatorio_data_inicio"
+          [(ngModel)]="filtroRelatorio.data_inicio"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="relatorio-data-fim">Data final</label>
+        <input
+          id="relatorio-data-fim"
+          type="date"
+          name="relatorio_data_fim"
+          [(ngModel)]="filtroRelatorio.data_fim"
+        />
+      </div>
+
+      <button
+        type="button"
+        [disabled]="carregandoRelatorio"
+        (click)="carregarRelatorio()"
+      >
+        Atualizar relatório
+      </button>
+
+      <button
+        type="button"
+        class="botao-secundario"
+        [disabled]="carregandoRelatorio || exportandoRelatorio"
+        (click)="limparFiltroRelatorio()"
+      >
+        Limpar período
+      </button>
+
+      <button
+        type="button"
+        class="botao-novo"
+        [disabled]="carregandoRelatorio || exportandoRelatorio"
+        (click)="exportarRelatorioCsv()"
+      >
+        {{ exportandoRelatorio ? 'Exportando...' : 'Exportar CSV' }}
+      </button>
+    </div>
+
+    <p class="erro" *ngIf="erroRelatorio">
+      {{ erroRelatorio }}
+    </p>
+
+    <p class="sucesso" *ngIf="mensagemRelatorio">
+      {{ mensagemRelatorio }}
+    </p>
+
+    <p *ngIf="carregandoRelatorio">Carregando indicadores...</p>
+
+    <div *ngIf="!carregandoRelatorio && relatorioResumo">
+      <p class="data-relatorio">
+        Atualizado em {{ relatorioResumo.gerado_em | date:'dd/MM/yyyy HH:mm' }}
+      </p>
+
+      <div class="indicadores-grid">
+        <article class="indicador-card">
+          <span>Solicitações</span>
+          <strong>{{ relatorioResumo.solicitacoes.total }}</strong>
+          <small>No período selecionado</small>
+        </article>
+
+        <article class="indicador-card">
+          <span>Pedidos</span>
+          <strong>{{ relatorioResumo.pedidos.total }}</strong>
+          <small>No período selecionado</small>
+        </article>
+
+        <article class="indicador-card">
+          <span>Recebimentos</span>
+          <strong>{{ relatorioResumo.recebimentos.total }}</strong>
+          <small>
+            {{ relatorioResumo.recebimentos.quantidade_recebida | number:'1.0-2' }} unidades recebidas
+          </small>
+        </article>
+
+        <article class="indicador-card">
+          <span>Entregas</span>
+          <strong>{{ relatorioResumo.entregas.total }}</strong>
+          <small>No período selecionado</small>
+        </article>
+      </div>
+
+      <h2>Situação operacional</h2>
+
+      <div class="indicadores-grid indicadores-secundarios">
+        <article class="indicador-card indicador-atencao">
+          <span>Entregas atrasadas</span>
+          <strong>{{ relatorioResumo.entregas.atrasadas }}</strong>
+        </article>
+
+        <article class="indicador-card indicador-informativo">
+          <span>Agendadas para hoje</span>
+          <strong>{{ relatorioResumo.entregas.agendadas_hoje }}</strong>
+        </article>
+
+        <article class="indicador-card">
+          <span>Produtos ativos</span>
+          <strong>{{ relatorioResumo.cadastros.produtos_ativos }}</strong>
+        </article>
+
+        <article class="indicador-card">
+          <span>Fornecedores ativos</span>
+          <strong>{{ relatorioResumo.cadastros.fornecedores_ativos }}</strong>
+        </article>
+
+        <article class="indicador-card">
+          <span>Clientes ativos</span>
+          <strong>{{ relatorioResumo.cadastros.clientes_ativos }}</strong>
+        </article>
+      </div>
+
+      <div class="blocos-relatorio">
+        <section class="bloco-relatorio">
+          <h2>Solicitações por status</h2>
+          <p *ngIf="!obterStatusRelatorio(relatorioResumo.solicitacoes).length">
+            Nenhuma solicitação no período.
+          </p>
+          <div
+            class="linha-relatorio"
+            *ngFor="let item of obterStatusRelatorio(relatorioResumo.solicitacoes)"
           >
-            <path
-              fill-rule="evenodd"
-              clip-rule="evenodd"
-              d="M27.4896 1.52422C27.9301 1.96749 28.2463 2.51866 28.4068 3.12258C29.0004 5.35161 29.0004 10 29.0004 10C29.0004 10 29.0004 14.6484 28.4068 16.8774C28.2463 17.4813 27.9301 18.0325 27.4896 18.4758C27.0492 18.9191 26.5 19.2389 25.8972 19.4032C23.6778 20 14.8068 20 14.8068 20C14.8068 20 5.93586 20 3.71651 19.4032C3.11363 19.2389 2.56449 18.9191 2.12405 18.4758C1.68361 18.0325 1.36732 17.4813 1.20683 16.8774C0.613281 14.6484 0.613281 10 0.613281 10C0.613281 10 0.613281 5.35161 1.20683 3.12258C1.36732 2.51866 1.68361 1.96749 2.12405 1.52422C2.56449 1.08095 3.11363 0.76113 3.71651 0.596774C5.93586 0 14.8068 0 14.8068 0C14.8068 0 23.6778 0 25.8972 0.596774C26.5 0.76113 27.0492 1.08095 27.4896 1.52422ZM19.3229 10L11.9036 5.77905V14.221L19.3229 10Z"
-            />
-          </svg>
-        </a>
+            <span>{{ formatarStatus(item.status) }}</span>
+            <strong>{{ item.total }}</strong>
+          </div>
+        </section>
+
+        <section class="bloco-relatorio">
+          <h2>Pedidos por status</h2>
+          <p *ngIf="!obterStatusRelatorio(relatorioResumo.pedidos).length">
+            Nenhum pedido no período.
+          </p>
+          <div
+            class="linha-relatorio"
+            *ngFor="let item of obterStatusRelatorio(relatorioResumo.pedidos)"
+          >
+            <span>{{ formatarStatus(item.status) }}</span>
+            <strong>{{ item.total }}</strong>
+          </div>
+        </section>
+
+        <section class="bloco-relatorio">
+          <h2>Entregas por status</h2>
+          <p *ngIf="!obterStatusRelatorio(relatorioResumo.entregas).length">
+            Nenhuma entrega no período.
+          </p>
+          <div
+            class="linha-relatorio"
+            *ngFor="let item of obterStatusRelatorio(relatorioResumo.entregas)"
+          >
+            <span>{{ formatarStatus(item.status) }}</span>
+            <strong>{{ item.total }}</strong>
+          </div>
+        </section>
+      </div>
+
+      <div class="blocos-relatorio">
+        <section class="bloco-relatorio">
+          <h2>Produtos mais solicitados</h2>
+          <p *ngIf="!relatorioResumo.produtos_mais_solicitados.length">
+            Nenhum produto solicitado no período.
+          </p>
+          <div
+            class="linha-relatorio"
+            *ngFor="let produto of relatorioResumo.produtos_mais_solicitados; let i = index"
+          >
+            <span>{{ i + 1 }}. {{ produto.nome }}</span>
+            <strong>{{ produto.quantidade_solicitada | number:'1.0-2' }}</strong>
+          </div>
+        </section>
+
+        <section class="bloco-relatorio">
+          <h2>Fornecedores com mais pedidos</h2>
+          <p *ngIf="!relatorioResumo.fornecedores_mais_utilizados.length">
+            Nenhum fornecedor utilizado no período.
+          </p>
+          <div
+            class="linha-relatorio"
+            *ngFor="let fornecedor of relatorioResumo.fornecedores_mais_utilizados; let i = index"
+          >
+            <span>{{ i + 1 }}. {{ fornecedor.nome }}</span>
+            <strong>{{ fornecedor.total_pedidos }}</strong>
+          </div>
+        </section>
       </div>
     </div>
   </div>
-</main>
+</div>
 
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
-<!-- * * * * * * * * * * * The content above * * * * * * * * * * * * -->
-<!-- * * * * * * * * * * is only a placeholder * * * * * * * * * * * -->
-<!-- * * * * * * * * * * and can be replaced.  * * * * * * * * * * * -->
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
-<!-- * * * * * * * * * * End of Placeholder  * * * * * * * * * * * * -->
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
+<div *ngIf="logado && telaAtual === 'usuarios'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>Usuários</h1>
 
+    <button type="button" (click)="abrirTela('dashboard')">
+      Voltar
+    </button>
 
-<router-outlet />
+    <button
+      type="button"
+      class="botao-novo"
+      (click)="abrirNovoUsuario()"
+    >
+      + Novo Usuário
+    </button>
+
+    <p *ngIf="carregandoUsuarios">Carregando usuários...</p>
+
+    <p class="erro" *ngIf="erroUsuarios">
+      {{ erroUsuarios }}
+    </p>
+
+    <p class="sucesso" *ngIf="mensagemUsuarios">
+      {{ mensagemUsuarios }}
+    </p>
+
+    <div class="filtros-listagem" *ngIf="!carregandoUsuarios && usuarios.length">
+      <div class="campo">
+        <label for="busca-usuarios">Pesquisar</label>
+        <input
+          id="busca-usuarios"
+          type="search"
+          [(ngModel)]="filtroUsuarios.busca"
+          placeholder="Nome ou login"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="perfil-usuarios">Perfil</label>
+        <select id="perfil-usuarios" [(ngModel)]="filtroUsuarios.perfil">
+          <option value="">Todos os perfis</option>
+          <option *ngFor="let perfil of perfisUsuario" [value]="perfil">
+            {{ perfil }}
+          </option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="status-usuarios">Status</label>
+        <select id="status-usuarios" [(ngModel)]="filtroUsuarios.status">
+          <option value="">Todos os status</option>
+          <option value="ATIVO">Ativo</option>
+          <option value="INATIVO">Inativo</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="ordem-usuarios">Ordenar por</label>
+        <select id="ordem-usuarios" [(ngModel)]="filtroUsuarios.ordem">
+          <option value="az">Nome (A-Z)</option>
+          <option value="za">Nome (Z-A)</option>
+          <option value="recentes">Mais recentes</option>
+          <option value="antigos">Mais antigos</option>
+        </select>
+      </div>
+    </div>
+
+    <p *ngIf="!carregandoUsuarios">
+      Encontrados {{ obterUsuariosFiltrados().length }} de {{ usuarios.length }} usuários
+    </p>
+
+    <p class="aviso" *ngIf="usuarios.length && obterUsuariosFiltrados().length === 0">
+      Nenhum usuário corresponde aos filtros informados.
+    </p>
+
+    <div class="paginacao" *ngIf="obterUsuariosFiltrados().length">
+      <label>
+        Por página
+        <select
+          [(ngModel)]="paginacao.usuarios.porPagina"
+          (ngModelChange)="reiniciarPagina('usuarios')"
+        >
+          <option *ngFor="let opcao of opcoesItensPorPagina" [ngValue]="opcao">
+            {{ opcao }}
+          </option>
+        </select>
+      </label>
+      <div class="navegacao-paginacao">
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterUsuariosFiltrados().length, 'usuarios') === 1"
+          (click)="alterarPagina('usuarios', obterPaginaAtual(obterUsuariosFiltrados().length, 'usuarios') - 1, obterUsuariosFiltrados().length)"
+        >
+          Anterior
+        </button>
+        <span>
+          Página {{ obterPaginaAtual(obterUsuariosFiltrados().length, 'usuarios') }} de
+          {{ obterTotalPaginas(obterUsuariosFiltrados().length, 'usuarios') }}
+        </span>
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterUsuariosFiltrados().length, 'usuarios') === obterTotalPaginas(obterUsuariosFiltrados().length, 'usuarios')"
+          (click)="alterarPagina('usuarios', obterPaginaAtual(obterUsuariosFiltrados().length, 'usuarios') + 1, obterUsuariosFiltrados().length)"
+        >
+          Próxima
+        </button>
+      </div>
+    </div>
+
+    <div class="lista-usuarios">
+      <article
+        class="usuario-card"
+        *ngFor="let usuario of paginarLista(obterUsuariosFiltrados(), 'usuarios')"
+      >
+        <h3>
+          {{ usuario.nome }}
+          <span class="conta-atual" *ngIf="ehUsuarioAtual(usuario)">
+            Sua conta
+          </span>
+        </h3>
+
+        <p><strong>Login:</strong> {{ usuario.login }}</p>
+        <p><strong>Perfil:</strong> {{ formatarPerfil(usuario.perfil) }}</p>
+        <p>
+          <strong>Status:</strong>
+          <span
+            class="status-badge"
+            [ngClass]="classeStatus(usuario.ativo ? 'ATIVO' : 'INATIVO')"
+          >
+            {{ formatarStatus(usuario.ativo ? 'ATIVO' : 'INATIVO') }}
+          </span>
+        </p>
+        <p>
+          <strong>Cadastrado em:</strong>
+          {{ usuario.data_cadastro | date:'dd/MM/yyyy HH:mm' }}
+        </p>
+
+        <div class="acoes-cliente">
+          <button type="button" (click)="editarUsuario(usuario)">
+            Editar
+          </button>
+
+          <button
+            *ngIf="!ehUsuarioAtual(usuario)"
+            type="button"
+            [class.botao-perigo]="usuario.ativo"
+            [class.botao-sucesso]="!usuario.ativo"
+            [disabled]="usuarioEmAtualizacao === usuario.id_usuario"
+            (click)="alterarStatusUsuario(usuario)"
+          >
+            {{
+              usuarioEmAtualizacao === usuario.id_usuario
+                ? 'Atualizando...'
+                : (usuario.ativo ? 'Desativar' : 'Ativar')
+            }}
+          </button>
+        </div>
+      </article>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'formulario-usuario'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>{{ usuarioEmEdicaoId === null ? 'Novo Usuário' : 'Editar Usuário' }}</h1>
+
+    <button type="button" (click)="abrirTela('usuarios')">
+      Voltar
+    </button>
+
+    <p class="erro" *ngIf="erroFormularioUsuario">
+      {{ erroFormularioUsuario }}
+    </p>
+
+    <form class="formulario-grid" #formUsuario="ngForm" (ngSubmit)="salvarUsuario()">
+      <div class="campo">
+        <label for="nome-usuario">Nome</label>
+        <input
+          id="nome-usuario"
+          type="text"
+          name="nome_usuario"
+          [(ngModel)]="formularioUsuario.nome"
+          maxlength="100"
+          required
+        />
+      </div>
+
+      <div class="campo">
+        <label for="login-usuario">Login</label>
+        <input
+          id="login-usuario"
+          type="text"
+          name="login_usuario"
+          [(ngModel)]="formularioUsuario.login"
+          autocomplete="username"
+          maxlength="50"
+          required
+        />
+      </div>
+
+      <div class="campo">
+        <label for="senha-usuario">
+          {{ usuarioEmEdicaoId === null ? 'Senha' : 'Nova senha (opcional)' }}
+        </label>
+        <input
+          id="senha-usuario"
+          type="password"
+          name="senha_usuario"
+          [(ngModel)]="formularioUsuario.senha"
+          minlength="6"
+          maxlength="128"
+          [required]="usuarioEmEdicaoId === null"
+          autocomplete="new-password"
+        />
+        <small *ngIf="usuarioEmEdicaoId !== null">
+          Deixe em branco para manter a senha atual.
+        </small>
+      </div>
+
+      <div class="campo">
+        <label for="perfil-usuario">Perfil</label>
+        <select
+          id="perfil-usuario"
+          name="perfil_usuario"
+          [(ngModel)]="formularioUsuario.perfil"
+          [disabled]="usuarioEmEdicaoId === idUsuarioAtual"
+          required
+        >
+          <option *ngFor="let perfil of perfisUsuario" [value]="perfil">
+            {{ perfil }}
+          </option>
+        </select>
+        <small *ngIf="usuarioEmEdicaoId === idUsuarioAtual">
+          O perfil da conta em uso não pode ser alterado.
+        </small>
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="formUsuario.invalid || salvandoUsuario"
+      >
+        {{ salvandoUsuario ? 'Salvando...' : 'Salvar Usuário' }}
+      </button>
+    </form>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'pedidos'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>Pedidos de Compra</h1>
+
+    <button (click)="abrirTela('dashboard')">
+      Voltar
+    </button>
+
+    <button
+      *ngIf="podeAdministrarPedidos()"
+      class="botao-novo"
+      (click)="abrirTela('novo-pedido')"
+    >
+      + Novo Pedido
+    </button>
+
+    <button
+      type="button"
+      [disabled]="exportandoPedidos || !obterPedidosFiltrados().length"
+      (click)="exportarPedidosCsv()"
+    >
+      {{ exportandoPedidos ? 'Exportando...' : 'Exportar pedidos CSV' }}
+    </button>
+
+    <p *ngIf="carregandoPedidos">
+      Carregando pedidos...
+    </p>
+
+    <p class="erro" *ngIf="erroPedidos">
+      {{ erroPedidos }}
+    </p>
+
+    <p class="sucesso" *ngIf="mensagemPedidos">
+      {{ mensagemPedidos }}
+    </p>
+
+    <p class="erro" *ngIf="erroAcaoPedidos">
+      {{ erroAcaoPedidos }}
+    </p>
+
+    <div
+      class="filtros-listagem"
+      *ngIf="!carregandoPedidos && !erroPedidos && pedidos.length"
+    >
+      <div class="campo">
+        <label for="busca-pedidos">Pesquisar</label>
+        <input
+          id="busca-pedidos"
+          type="search"
+          [(ngModel)]="filtroPedidos.busca"
+          placeholder="Número ou fornecedor"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="status-pedidos">Status</label>
+        <select id="status-pedidos" [(ngModel)]="filtroPedidos.status">
+          <option value="">Todos os status</option>
+          <option value="CRIADO">Criado</option>
+          <option value="AGUARDANDO_RECEBIMENTO">Aguardando recebimento</option>
+          <option value="RECEBIDO_PARCIAL">Recebido parcial</option>
+          <option value="RECEBIDO_TOTAL">Recebido total</option>
+          <option value="CANCELADO">Cancelado</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="fornecedor-filtro-pedidos">Fornecedor</label>
+        <select
+          id="fornecedor-filtro-pedidos"
+          [(ngModel)]="filtroPedidos.fornecedor"
+        >
+          <option value="">Todos os fornecedores</option>
+          <option
+            *ngFor="let fornecedor of obterFornecedoresParaFiltro()"
+            [value]="fornecedor.id_fornecedor"
+          >
+            {{ fornecedor.nome_fantasia || fornecedor.razao_social }}{{ fornecedor.ativo ? '' : ' (inativo)' }}
+          </option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="inicio-filtro-pedidos">Data inicial</label>
+        <input
+          id="inicio-filtro-pedidos"
+          type="date"
+          [(ngModel)]="filtroPedidos.data_inicio"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="fim-filtro-pedidos">Data final</label>
+        <input
+          id="fim-filtro-pedidos"
+          type="date"
+          [(ngModel)]="filtroPedidos.data_fim"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="ordem-pedidos">Ordenar por</label>
+        <select id="ordem-pedidos" [(ngModel)]="filtroPedidos.ordem">
+          <option value="recentes">Mais recentes</option>
+          <option value="antigos">Mais antigos</option>
+          <option value="az">Número (A-Z)</option>
+          <option value="za">Número (Z-A)</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label>&nbsp;</label>
+        <button
+          type="button"
+          [disabled]="!temFiltrosPedidos()"
+          (click)="limparFiltrosPedidos()"
+        >
+          Limpar filtros
+        </button>
+      </div>
+    </div>
+
+    <p class="erro" *ngIf="periodoPedidosInvalido()">
+      A data inicial não pode ser posterior à data final.
+    </p>
+
+    <p *ngIf="!carregandoPedidos && !erroPedidos && !periodoPedidosInvalido()">
+      Encontrados {{ obterPedidosFiltrados().length }} de {{ pedidos.length }} pedidos
+    </p>
+
+    <p *ngIf="!carregandoPedidos && !erroPedidos && pedidos.length === 0">
+      Nenhum pedido cadastrado.
+    </p>
+
+    <p
+      class="aviso"
+      *ngIf="!carregandoPedidos && pedidos.length && !periodoPedidosInvalido() && obterPedidosFiltrados().length === 0"
+    >
+      Nenhum pedido corresponde aos filtros informados.
+    </p>
+
+    <div class="paginacao" *ngIf="obterPedidosFiltrados().length">
+      <label>
+        Por página
+        <select
+          [(ngModel)]="paginacao.pedidos.porPagina"
+          (ngModelChange)="reiniciarPagina('pedidos')"
+        >
+          <option *ngFor="let opcao of opcoesItensPorPagina" [ngValue]="opcao">
+            {{ opcao }}
+          </option>
+        </select>
+      </label>
+      <div class="navegacao-paginacao">
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterPedidosFiltrados().length, 'pedidos') === 1"
+          (click)="alterarPagina('pedidos', obterPaginaAtual(obterPedidosFiltrados().length, 'pedidos') - 1, obterPedidosFiltrados().length)"
+        >
+          Anterior
+        </button>
+        <span>
+          Página {{ obterPaginaAtual(obterPedidosFiltrados().length, 'pedidos') }} de
+          {{ obterTotalPaginas(obterPedidosFiltrados().length, 'pedidos') }}
+        </span>
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterPedidosFiltrados().length, 'pedidos') === obterTotalPaginas(obterPedidosFiltrados().length, 'pedidos')"
+          (click)="alterarPagina('pedidos', obterPaginaAtual(obterPedidosFiltrados().length, 'pedidos') + 1, obterPedidosFiltrados().length)"
+        >
+          Próxima
+        </button>
+      </div>
+    </div>
+
+    <div class="lista-pedidos" *ngIf="!carregandoPedidos && !erroPedidos">
+      <div
+        class="pedido-card"
+        *ngFor="let pedido of paginarLista(obterPedidosFiltrados(), 'pedidos')"
+      >
+        <h3>Pedido {{ pedido.numero_pedido || '#' + pedido.id_pedido_compra }}</h3>
+
+        <p>
+          <strong>Solicitação de origem:</strong>
+          #{{ pedido.id_solicitacao }}
+        </p>
+
+        <p>
+          <strong>Fornecedor:</strong>
+          {{ obterNomeFornecedor(pedido.id_fornecedor) }}
+        </p>
+
+        <p>
+          <strong>Data:</strong>
+          {{ pedido.data_pedido | date:'dd/MM/yyyy':'UTC' }}
+        </p>
+
+        <p>
+          <strong>Status:</strong>
+          <span class="status-badge" [ngClass]="classeStatus(pedido.status)">
+            {{ formatarStatus(pedido.status) }}
+          </span>
+        </p>
+
+        <p>
+          <strong>Observação:</strong>
+          {{ pedido.observacao || 'Sem observação' }}
+        </p>
+
+        <div *ngIf="pedido.status === 'CANCELADO'">
+          <p>
+            <strong>Motivo do cancelamento:</strong>
+            {{ pedido.motivo_cancelamento || 'Não informado' }}
+          </p>
+          <p *ngIf="pedido.data_cancelamento">
+            <strong>Cancelado em:</strong>
+            {{ pedido.data_cancelamento | date:'dd/MM/yyyy HH:mm' }}
+          </p>
+        </div>
+
+        <div class="itens-resumo-card" *ngIf="pedido.itens?.length; else semItensPedido">
+          <p><strong>Produtos</strong></p>
+
+          <div class="pedido-item-resumo" *ngFor="let item of pedido.itens">
+            <strong>{{ obterNomeProduto(item.id_produto) }}</strong>
+            <span><small>Pedido</small>{{ item.quantidade }}</span>
+            <span><small>Recebido</small>{{ item.quantidade_recebida || 0 }}</span>
+            <span class="saldo"><small>Pendente</small>{{ item.saldo_pendente ?? item.quantidade }}</span>
+          </div>
+        </div>
+
+        <ng-template #semItensPedido>
+          <p><strong>Produtos:</strong> nenhum item encontrado.</p>
+        </ng-template>
+
+        <button
+          *ngIf="
+            podeEditarPedido(pedido) &&
+            pedidoEmEdicaoId !== pedido.id_pedido_compra
+          "
+          type="button"
+          [disabled]="pedidoEmAtualizacao === pedido.id_pedido_compra"
+          (click)="abrirEdicaoPedido(pedido)"
+        >
+          Editar pedido
+        </button>
+
+        <div
+          class="form-edicao-pedido"
+          *ngIf="pedidoEmEdicaoId === pedido.id_pedido_compra"
+        >
+          <h4>Editar pedido</h4>
+          <p class="erro" *ngIf="erroEdicaoPedido">{{ erroEdicaoPedido }}</p>
+
+          <div class="campo">
+            <label [for]="'fornecedor-edicao-pedido-' + pedido.id_pedido_compra">
+              Fornecedor
+            </label>
+            <select
+              [id]="'fornecedor-edicao-pedido-' + pedido.id_pedido_compra"
+              [name]="'fornecedor-edicao-pedido-' + pedido.id_pedido_compra"
+              [(ngModel)]="formularioEdicaoPedido.id_fornecedor"
+            >
+              <option [ngValue]="null">Selecione um fornecedor</option>
+              <option
+                *ngFor="let fornecedor of obterFornecedoresAtivos()"
+                [ngValue]="fornecedor.id_fornecedor"
+              >
+                {{ fornecedor.nome_fantasia || fornecedor.razao_social }}
+              </option>
+            </select>
+          </div>
+
+          <div class="campo">
+            <label [for]="'numero-edicao-pedido-' + pedido.id_pedido_compra">
+              Número do pedido
+            </label>
+            <input
+              [id]="'numero-edicao-pedido-' + pedido.id_pedido_compra"
+              [name]="'numero-edicao-pedido-' + pedido.id_pedido_compra"
+              type="text"
+              maxlength="30"
+              [(ngModel)]="formularioEdicaoPedido.numero_pedido"
+            />
+          </div>
+
+          <div class="campo">
+            <label [for]="'data-edicao-pedido-' + pedido.id_pedido_compra">
+              Data do pedido
+            </label>
+            <input
+              [id]="'data-edicao-pedido-' + pedido.id_pedido_compra"
+              [name]="'data-edicao-pedido-' + pedido.id_pedido_compra"
+              type="date"
+              [max]="dataHoje"
+              [(ngModel)]="formularioEdicaoPedido.data_pedido"
+            />
+          </div>
+
+          <div class="campo">
+            <label [for]="'observacao-edicao-pedido-' + pedido.id_pedido_compra">
+              Observação
+            </label>
+            <textarea
+              [id]="'observacao-edicao-pedido-' + pedido.id_pedido_compra"
+              [name]="'observacao-edicao-pedido-' + pedido.id_pedido_compra"
+              [(ngModel)]="formularioEdicaoPedido.observacao"
+            ></textarea>
+          </div>
+
+          <p class="aviso">
+            Informe zero para retirar um produto deste pedido.
+          </p>
+          <div
+            class="item-pedido-selecao"
+            *ngFor="let item of formularioEdicaoPedido.itens; let i = index"
+          >
+            <strong>{{ obterNomeProduto(item.id_produto) }}</strong>
+            <p>Quantidade disponível: {{ item.saldo }}</p>
+            <div class="campo">
+              <label [for]="'quantidade-edicao-pedido-' + pedido.id_pedido_compra + '-' + i">
+                Quantidade neste pedido
+              </label>
+              <input
+                [id]="'quantidade-edicao-pedido-' + pedido.id_pedido_compra + '-' + i"
+                [name]="'quantidade-edicao-pedido-' + pedido.id_pedido_compra + '-' + i"
+                type="number"
+                min="0"
+                [max]="item.saldo"
+                [(ngModel)]="item.quantidade"
+              />
+            </div>
+          </div>
+
+          <div class="acoes-edicao-pedido">
+            <button
+              type="button"
+              [disabled]="salvandoEdicaoPedido"
+              (click)="salvarEdicaoPedido(pedido)"
+            >
+              {{ salvandoEdicaoPedido ? 'Salvando...' : 'Salvar alterações' }}
+            </button>
+            <button
+              type="button"
+              [disabled]="salvandoEdicaoPedido"
+              (click)="desistirEdicaoPedido()"
+            >
+              Voltar
+            </button>
+          </div>
+        </div>
+
+        <button
+          *ngIf="
+            pedido.status === 'CRIADO' &&
+            podeAdministrarPedidos() &&
+            pedidoEmEdicaoId !== pedido.id_pedido_compra
+          "
+          type="button"
+          [disabled]="pedidoEmAtualizacao === pedido.id_pedido_compra"
+          (click)="enviarPedidoParaRecebimento(pedido.id_pedido_compra)"
+        >
+          {{
+            pedidoEmAtualizacao === pedido.id_pedido_compra
+              ? 'Enviando...'
+              : 'Enviar para recebimento'
+          }}
+        </button>
+
+        <button
+          *ngIf="
+            pedidoPodeSerCancelado(pedido) &&
+            podeAdministrarPedidos() &&
+            pedidoEmEdicaoId !== pedido.id_pedido_compra &&
+            pedidoEmCancelamento !== pedido.id_pedido_compra
+          "
+          type="button"
+          class="botao-perigo"
+          [disabled]="pedidoEmAtualizacao === pedido.id_pedido_compra"
+          (click)="solicitarCancelamentoPedido(pedido.id_pedido_compra)"
+        >
+          Cancelar pedido
+        </button>
+
+        <div
+          class="confirmacao-cancelamento-pedido"
+          *ngIf="pedidoEmCancelamento === pedido.id_pedido_compra"
+        >
+          <p>
+            Confirma o cancelamento? As quantidades voltarão ao saldo da solicitação.
+          </p>
+          <div class="campo">
+            <label [for]="'motivo-cancelamento-pedido-' + pedido.id_pedido_compra">
+              Motivo do cancelamento
+            </label>
+            <textarea
+              [id]="'motivo-cancelamento-pedido-' + pedido.id_pedido_compra"
+              [name]="'motivo-cancelamento-pedido-' + pedido.id_pedido_compra"
+              minlength="3"
+              maxlength="500"
+              [(ngModel)]="motivoCancelamentoPedido"
+              placeholder="Informe por que este pedido será cancelado"
+            ></textarea>
+          </div>
+          <button
+            type="button"
+            class="botao-perigo"
+            [disabled]="pedidoEmAtualizacao === pedido.id_pedido_compra"
+            (click)="confirmarCancelamentoPedido(pedido)"
+          >
+            {{
+              pedidoEmAtualizacao === pedido.id_pedido_compra
+                ? 'Cancelando...'
+                : 'Confirmar cancelamento'
+            }}
+          </button>
+          <button
+            type="button"
+            [disabled]="pedidoEmAtualizacao === pedido.id_pedido_compra"
+            (click)="desistirCancelamentoPedido()"
+          >
+            Voltar
+          </button>
+        </div>
+
+        <button
+          type="button"
+          class="botao-historico"
+          [disabled]="
+            carregandoHistoricoPedido &&
+            pedidoHistoricoSelecionado === pedido.id_pedido_compra
+          "
+          (click)="alternarHistoricoPedido(pedido.id_pedido_compra)"
+        >
+          {{
+            pedidoHistoricoSelecionado === pedido.id_pedido_compra
+              ? 'Ocultar histórico'
+              : 'Ver histórico'
+          }}
+        </button>
+
+        <section
+          class="painel-historico"
+          *ngIf="pedidoHistoricoSelecionado === pedido.id_pedido_compra"
+        >
+          <h4>Histórico do pedido</h4>
+          <p *ngIf="carregandoHistoricoPedido">Carregando histórico...</p>
+          <p class="erro" *ngIf="erroHistoricoPedido">
+            {{ erroHistoricoPedido }}
+          </p>
+          <p
+            *ngIf="
+              !carregandoHistoricoPedido &&
+              !erroHistoricoPedido &&
+              historicoPedido.length === 0
+            "
+          >
+            Nenhum evento registrado.
+          </p>
+          <ol
+            class="linha-do-tempo"
+            *ngIf="!carregandoHistoricoPedido && historicoPedido.length"
+          >
+            <li *ngFor="let evento of historicoPedido">
+              <div class="marcador-historico"></div>
+              <div class="conteudo-historico">
+                <strong>{{ formatarAcaoHistoricoPedido(evento.acao) }}</strong>
+                <p>{{ evento.descricao || 'Sem detalhes adicionais.' }}</p>
+                <small>{{ evento.data_hora | date:'dd/MM/yyyy HH:mm' }}</small>
+              </div>
+            </li>
+          </ol>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'novo-pedido'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>Novo Pedido de Compra</h1>
+
+    <button type="button" (click)="abrirTela('pedidos')">
+      Voltar
+    </button>
+
+    <p *ngIf="carregandoPedidos">Carregando dados do pedido...</p>
+
+    <p class="erro" *ngIf="erroNovoPedido">
+      {{ erroNovoPedido }}
+    </p>
+
+    <form
+      *ngIf="!carregandoPedidos"
+      #formPedido="ngForm"
+      (ngSubmit)="criarPedido()"
+    >
+      <div class="campo">
+        <label for="pedido-solicitacao">Solicitação aprovada</label>
+
+        <select
+          id="pedido-solicitacao"
+          name="pedido-solicitacao"
+          [(ngModel)]="novoPedido.id_solicitacao"
+          (ngModelChange)="prepararItensNovoPedido()"
+          required
+        >
+          <option [ngValue]="null">Selecione uma solicitação</option>
+
+          <option
+            *ngFor="let solicitacao of obterSolicitacoesAprovadas()"
+            [ngValue]="solicitacao.id_solicitacao"
+          >
+            Solicitação #{{ solicitacao.id_solicitacao }} - {{ solicitacao.motivo }}
+          </option>
+        </select>
+      </div>
+
+      <p *ngIf="obterSolicitacoesAprovadas().length === 0" class="aviso">
+        Não há solicitações aprovadas disponíveis.
+      </p>
+
+      <div class="itens-pedido" *ngIf="obterSolicitacaoSelecionada()">
+        <p><strong>Itens e saldos disponíveis:</strong></p>
+
+        <div class="item-pedido-selecao" *ngFor="let item of itensNovoPedido">
+          <p>
+            <strong>{{ obterNomeProduto(item.id_produto) }}</strong>
+            | Saldo: {{ item.saldo }}
+          </p>
+          <label [for]="'quantidade-pedido-' + item.id_item_solicitacao">
+            Quantidade neste pedido
+          </label>
+          <input
+            [id]="'quantidade-pedido-' + item.id_item_solicitacao"
+            type="number"
+            [name]="'quantidade-pedido-' + item.id_item_solicitacao"
+            [(ngModel)]="item.quantidade"
+            min="0"
+            [max]="item.saldo"
+            step="1"
+          />
+        </div>
+
+        <p class="aviso" *ngIf="itensNovoPedido.length === 0">
+          Esta solicitação não possui saldo disponível.
+        </p>
+      </div>
+
+      <div class="campo">
+        <label for="pedido-fornecedor">Fornecedor ativo</label>
+
+        <select
+          id="pedido-fornecedor"
+          name="pedido-fornecedor"
+          [(ngModel)]="novoPedido.id_fornecedor"
+          required
+        >
+          <option [ngValue]="null">Selecione um fornecedor</option>
+
+          <option
+            *ngFor="let fornecedor of obterFornecedoresAtivos()"
+            [ngValue]="fornecedor.id_fornecedor"
+          >
+            {{ fornecedor.nome_fantasia || fornecedor.razao_social }}
+          </option>
+        </select>
+      </div>
+
+      <p *ngIf="obterFornecedoresAtivos().length === 0" class="aviso">
+        Não há fornecedores ativos cadastrados.
+      </p>
+
+      <div class="campo">
+        <label for="numero-pedido">Número do pedido</label>
+
+        <input
+          id="numero-pedido"
+          type="text"
+          name="numero-pedido"
+          [(ngModel)]="novoPedido.numero_pedido"
+          maxlength="30"
+          autocomplete="off"
+          required
+        />
+        <small>Até 30 caracteres.</small>
+      </div>
+
+      <div class="campo">
+        <label for="data-pedido">Data do pedido</label>
+
+        <input
+          id="data-pedido"
+          type="date"
+          name="data-pedido"
+          [(ngModel)]="novoPedido.data_pedido"
+          [max]="dataHoje"
+          required
+        />
+      </div>
+
+      <div class="campo">
+        <label for="observacao-pedido">Observação</label>
+
+        <textarea
+          id="observacao-pedido"
+          name="observacao-pedido"
+          [(ngModel)]="novoPedido.observacao"
+          placeholder="Observação opcional"
+        ></textarea>
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="
+          criandoPedido ||
+          formPedido.invalid ||
+          obterSolicitacoesAprovadas().length === 0 ||
+          obterFornecedoresAtivos().length === 0
+        "
+      >
+        {{ criandoPedido ? 'Criando pedido...' : 'Criar Pedido' }}
+      </button>
+    </form>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'recebimentos'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>Recebimentos</h1>
+
+    <button type="button" (click)="abrirTela('dashboard')">
+      Voltar
+    </button>
+
+    <p *ngIf="carregandoRecebimentos">Carregando pedidos...</p>
+
+    <p class="erro" *ngIf="erroRecebimentos">
+      {{ erroRecebimentos }}
+    </p>
+
+    <p class="sucesso" *ngIf="mensagemRecebimentos">
+      {{ mensagemRecebimentos }}
+    </p>
+
+    <div *ngIf="!carregandoRecebimentos && !erroRecebimentos">
+      <div class="campo">
+        <label for="pedido-recebimento">Pedido disponível para recebimento</label>
+
+        <select
+          id="pedido-recebimento"
+          name="pedido-recebimento"
+          [(ngModel)]="pedidoRecebimentoSelecionado"
+          (ngModelChange)="carregarItensRecebimento()"
+        >
+          <option [ngValue]="null">Selecione um pedido</option>
+
+          <option
+            *ngFor="let pedido of obterPedidosDisponiveisRecebimento()"
+            [ngValue]="pedido.id_pedido_compra"
+          >
+            {{ pedido.numero_pedido }} -
+            {{ obterNomeFornecedor(pedido.id_fornecedor) }} -
+            {{ formatarStatus(pedido.status) }}
+          </option>
+        </select>
+      </div>
+
+      <p
+        class="aviso"
+        *ngIf="obterPedidosDisponiveisRecebimento().length === 0"
+      >
+        Não há pedidos aguardando recebimento.
+      </p>
+
+      <p *ngIf="carregandoItensRecebimento">
+        Carregando itens do pedido...
+      </p>
+
+      <p class="aviso" *ngIf="avisoItensRecebimento">
+        {{ avisoItensRecebimento }}
+      </p>
+
+      <form
+        *ngIf="
+          detalhePedidoRecebimento &&
+          itensNovoRecebimento.length > 0 &&
+          !carregandoItensRecebimento
+        "
+        #formRecebimento="ngForm"
+        (ngSubmit)="registrarRecebimento()"
+      >
+        <div class="cabecalho-recebimento">
+          <p>
+            <strong>Pedido:</strong>
+            {{ detalhePedidoRecebimento.numero_pedido }}
+          </p>
+
+          <p>
+            <strong>Fornecedor:</strong>
+            {{ obterNomeFornecedor(detalhePedidoRecebimento.id_fornecedor) }}
+          </p>
+
+          <p>
+            <strong>Status:</strong>
+            <span
+              class="status-badge"
+              [ngClass]="classeStatus(detalhePedidoRecebimento.status)"
+            >
+              {{ formatarStatus(detalhePedidoRecebimento.status) }}
+            </span>
+          </p>
+        </div>
+
+        <h2>Itens</h2>
+
+        <div
+          class="item-recebimento"
+          *ngFor="let item of itensNovoRecebimento"
+        >
+          <p class="nome-item-recebimento">
+            {{ obterNomeProduto(item.id_produto) }}
+          </p>
+
+          <div class="quantidades-recebimento">
+            <p><strong>Pedida:</strong> {{ item.quantidade }}</p>
+            <p><strong>Já recebida:</strong> {{ item.quantidade_recebida }}</p>
+            <p><strong>Saldo:</strong> {{ item.saldo_pendente }}</p>
+          </div>
+
+          <div class="campo">
+            <label [for]="'quantidade-recebida-' + item.id_item_pedido">
+              Quantidade recebida agora
+            </label>
+
+            <input
+              [id]="'quantidade-recebida-' + item.id_item_pedido"
+              type="number"
+              [name]="'quantidade-recebida-' + item.id_item_pedido"
+              [(ngModel)]="item.quantidade_recebida_agora"
+              min="0"
+              [max]="item.saldo_pendente"
+              step="0.01"
+              [disabled]="item.saldo_pendente <= 0"
+              placeholder="0"
+            />
+          </div>
+        </div>
+
+        <div class="campo">
+          <label for="nota-fiscal-recebimento">Número da nota fiscal</label>
+
+          <input
+            id="nota-fiscal-recebimento"
+            type="text"
+            name="nota-fiscal-recebimento"
+            [(ngModel)]="novoRecebimento.numero_nota_fiscal"
+            maxlength="30"
+            autocomplete="off"
+          />
+          <small>Opcional, com até 30 caracteres.</small>
+        </div>
+
+        <div class="campo">
+          <label for="observacao-recebimento">Observação</label>
+
+          <textarea
+            id="observacao-recebimento"
+            name="observacao-recebimento"
+            [(ngModel)]="novoRecebimento.observacao"
+            placeholder="Observação opcional"
+          ></textarea>
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="registrandoRecebimento || formRecebimento.invalid"
+        >
+          {{
+            registrandoRecebimento
+              ? 'Registrando recebimento...'
+              : 'Registrar Recebimento'
+          }}
+        </button>
+      </form>
+
+      <div
+        class="resumo-pedidos-recebimento"
+        *ngIf="obterPedidosComStatusRecebimento().length"
+      >
+        <h2>Status dos pedidos</h2>
+
+        <div class="filtros-listagem">
+          <div class="campo">
+            <label for="busca-recebimentos">Pesquisar</label>
+            <input
+              id="busca-recebimentos"
+              type="search"
+              [(ngModel)]="filtroRecebimentos.busca"
+              placeholder="Número ou fornecedor"
+            />
+          </div>
+
+          <div class="campo">
+            <label for="status-recebimentos">Status</label>
+            <select id="status-recebimentos" [(ngModel)]="filtroRecebimentos.status">
+              <option value="">Todos os status</option>
+              <option value="AGUARDANDO_RECEBIMENTO">Aguardando recebimento</option>
+              <option value="RECEBIDO_PARCIAL">Recebido parcial</option>
+              <option value="RECEBIDO_TOTAL">Recebido total</option>
+            </select>
+          </div>
+
+          <div class="campo">
+            <label for="ordem-recebimentos">Ordenar por</label>
+            <select id="ordem-recebimentos" [(ngModel)]="filtroRecebimentos.ordem">
+              <option value="recentes">Mais recentes</option>
+              <option value="antigos">Mais antigos</option>
+              <option value="az">Número (A-Z)</option>
+              <option value="za">Número (Z-A)</option>
+            </select>
+          </div>
+        </div>
+
+        <p>
+          Encontrados {{ obterRecebimentosFiltrados().length }} de
+          {{ obterPedidosComStatusRecebimento().length }} pedidos
+        </p>
+
+        <p class="aviso" *ngIf="obterRecebimentosFiltrados().length === 0">
+          Nenhum pedido corresponde aos filtros informados.
+        </p>
+
+        <div class="paginacao" *ngIf="obterRecebimentosFiltrados().length">
+          <label>
+            Por página
+            <select
+              [(ngModel)]="paginacao.recebimentos.porPagina"
+              (ngModelChange)="reiniciarPagina('recebimentos')"
+            >
+              <option *ngFor="let opcao of opcoesItensPorPagina" [ngValue]="opcao">
+                {{ opcao }}
+              </option>
+            </select>
+          </label>
+          <div class="navegacao-paginacao">
+            <button
+              type="button"
+              [disabled]="obterPaginaAtual(obterRecebimentosFiltrados().length, 'recebimentos') === 1"
+              (click)="alterarPagina('recebimentos', obterPaginaAtual(obterRecebimentosFiltrados().length, 'recebimentos') - 1, obterRecebimentosFiltrados().length)"
+            >
+              Anterior
+            </button>
+            <span>
+              Página {{ obterPaginaAtual(obterRecebimentosFiltrados().length, 'recebimentos') }} de
+              {{ obterTotalPaginas(obterRecebimentosFiltrados().length, 'recebimentos') }}
+            </span>
+            <button
+              type="button"
+              [disabled]="obterPaginaAtual(obterRecebimentosFiltrados().length, 'recebimentos') === obterTotalPaginas(obterRecebimentosFiltrados().length, 'recebimentos')"
+              (click)="alterarPagina('recebimentos', obterPaginaAtual(obterRecebimentosFiltrados().length, 'recebimentos') + 1, obterRecebimentosFiltrados().length)"
+            >
+              Próxima
+            </button>
+          </div>
+        </div>
+
+        <div
+          class="resumo-pedido-recebimento"
+          *ngFor="let pedido of paginarLista(obterRecebimentosFiltrados(), 'recebimentos')"
+        >
+          <strong>{{ pedido.numero_pedido }}</strong>
+          <span class="status-badge" [ngClass]="classeStatus(pedido.status)">
+            {{ formatarStatus(pedido.status) }}
+          </span>
+        </div>
+      </div>
+
+      <section class="historico-recebimentos" *ngIf="recebimentos.length">
+        <h2>Histórico de recebimentos</h2>
+
+        <button
+          type="button"
+          [disabled]="
+            exportandoHistoricoRecebimentos ||
+            !obterHistoricoRecebimentosFiltrado().length
+          "
+          (click)="exportarHistoricoRecebimentosCsv()"
+        >
+          {{
+            exportandoHistoricoRecebimentos
+              ? 'Exportando...'
+              : 'Exportar recebimentos CSV'
+          }}
+        </button>
+
+        <div class="filtros-listagem">
+          <div class="campo">
+            <label for="busca-historico-recebimentos">Pesquisar</label>
+            <input
+              id="busca-historico-recebimentos"
+              type="search"
+              [(ngModel)]="filtroHistoricoRecebimentos.busca"
+              placeholder="Pedido, nota fiscal ou produto"
+            />
+          </div>
+
+          <div class="campo">
+            <label for="status-historico-recebimentos">Status</label>
+            <select
+              id="status-historico-recebimentos"
+              [(ngModel)]="filtroHistoricoRecebimentos.status"
+            >
+              <option value="">Todos os status</option>
+              <option value="REGISTRADO">Registrado</option>
+              <option value="ESTORNADO">Estornado</option>
+            </select>
+          </div>
+
+          <div class="campo">
+            <label for="inicio-historico-recebimentos">Data inicial</label>
+            <input
+              id="inicio-historico-recebimentos"
+              type="date"
+              [(ngModel)]="filtroHistoricoRecebimentos.data_inicio"
+            />
+          </div>
+
+          <div class="campo">
+            <label for="fim-historico-recebimentos">Data final</label>
+            <input
+              id="fim-historico-recebimentos"
+              type="date"
+              [(ngModel)]="filtroHistoricoRecebimentos.data_fim"
+            />
+          </div>
+
+          <div class="campo">
+            <label for="ordem-historico-recebimentos">Ordenar por</label>
+            <select
+              id="ordem-historico-recebimentos"
+              [(ngModel)]="filtroHistoricoRecebimentos.ordem"
+            >
+              <option value="recentes">Mais recentes</option>
+              <option value="antigos">Mais antigos</option>
+            </select>
+          </div>
+
+          <div class="campo">
+            <label>&nbsp;</label>
+            <button
+              type="button"
+              [disabled]="!temFiltrosHistoricoRecebimentos()"
+              (click)="limparFiltrosHistoricoRecebimentos()"
+            >
+              Limpar filtros
+            </button>
+          </div>
+        </div>
+
+        <p class="erro" *ngIf="periodoHistoricoRecebimentosInvalido()">
+          A data inicial não pode ser posterior à data final.
+        </p>
+
+        <p *ngIf="!periodoHistoricoRecebimentosInvalido()">
+          Encontrados {{ obterHistoricoRecebimentosFiltrado().length }} de
+          {{ recebimentos.length }} recebimentos
+        </p>
+
+        <p
+          class="aviso"
+          *ngIf="
+            !periodoHistoricoRecebimentosInvalido() &&
+            obterHistoricoRecebimentosFiltrado().length === 0
+          "
+        >
+          Nenhum recebimento corresponde aos filtros informados.
+        </p>
+
+        <div
+          class="paginacao"
+          *ngIf="obterHistoricoRecebimentosFiltrado().length"
+        >
+          <label>
+            Por página
+            <select
+              [(ngModel)]="paginacao.historico_recebimentos.porPagina"
+              (ngModelChange)="reiniciarPagina('historico_recebimentos')"
+            >
+              <option *ngFor="let opcao of opcoesItensPorPagina" [ngValue]="opcao">
+                {{ opcao }}
+              </option>
+            </select>
+          </label>
+          <div class="navegacao-paginacao">
+            <button
+              type="button"
+              [disabled]="obterPaginaAtual(obterHistoricoRecebimentosFiltrado().length, 'historico_recebimentos') === 1"
+              (click)="alterarPagina('historico_recebimentos', obterPaginaAtual(obterHistoricoRecebimentosFiltrado().length, 'historico_recebimentos') - 1, obterHistoricoRecebimentosFiltrado().length)"
+            >
+              Anterior
+            </button>
+            <span>
+              Página {{ obterPaginaAtual(obterHistoricoRecebimentosFiltrado().length, 'historico_recebimentos') }} de
+              {{ obterTotalPaginas(obterHistoricoRecebimentosFiltrado().length, 'historico_recebimentos') }}
+            </span>
+            <button
+              type="button"
+              [disabled]="obterPaginaAtual(obterHistoricoRecebimentosFiltrado().length, 'historico_recebimentos') === obterTotalPaginas(obterHistoricoRecebimentosFiltrado().length, 'historico_recebimentos')"
+              (click)="alterarPagina('historico_recebimentos', obterPaginaAtual(obterHistoricoRecebimentosFiltrado().length, 'historico_recebimentos') + 1, obterHistoricoRecebimentosFiltrado().length)"
+            >
+              Próxima
+            </button>
+          </div>
+        </div>
+
+        <article
+          class="recebimento-card"
+          *ngFor="let recebimento of paginarLista(obterHistoricoRecebimentosFiltrado(), 'historico_recebimentos')"
+        >
+          <div class="cabecalho-recebimento-historico">
+            <strong>Recebimento #{{ recebimento.id_recebimento }}</strong>
+            <span
+              class="status-badge"
+              [ngClass]="classeStatus(recebimento.status)"
+            >
+              {{ formatarStatus(recebimento.status) }}
+            </span>
+          </div>
+
+          <p>
+            <strong>Pedido:</strong>
+            {{ obterNumeroPedidoRecebimento(recebimento.id_pedido_compra) }}
+          </p>
+          <p>
+            <strong>Data:</strong>
+            {{ recebimento.data_recebimento | date:'dd/MM/yyyy HH:mm' }}
+          </p>
+          <p>
+            <strong>Nota fiscal:</strong>
+            {{ recebimento.numero_nota_fiscal || 'Não informada' }}
+          </p>
+          <p><strong>Observação:</strong> {{ recebimento.observacao || 'Nenhuma' }}</p>
+
+          <div class="itens-recebimento-historico">
+            <p *ngFor="let item of recebimento.itens">
+              {{ obterNomeProduto(item.id_produto) }}
+              | Quantidade: {{ item.quantidade_recebida }}
+            </p>
+          </div>
+
+          <div *ngIf="recebimento.status === 'ESTORNADO'" class="aviso">
+            <strong>Motivo do estorno:</strong> {{ recebimento.motivo_estorno }}
+          </div>
+
+          <button
+            *ngIf="
+              recebimento.status === 'REGISTRADO' &&
+              podeEstornarRecebimento() &&
+              recebimentoEmEstorno !== recebimento.id_recebimento
+            "
+            type="button"
+            class="botao-perigo"
+            (click)="abrirEstornoRecebimento(recebimento.id_recebimento)"
+          >
+            Estornar recebimento
+          </button>
+
+          <div
+            class="form-estorno-recebimento"
+            *ngIf="recebimentoEmEstorno === recebimento.id_recebimento"
+          >
+            <label [for]="'motivo-estorno-' + recebimento.id_recebimento">
+              Motivo do estorno
+            </label>
+            <textarea
+              [id]="'motivo-estorno-' + recebimento.id_recebimento"
+              [name]="'motivo-estorno-' + recebimento.id_recebimento"
+              [(ngModel)]="motivoEstornoRecebimento"
+              maxlength="500"
+              placeholder="Explique por que este recebimento deve ser estornado"
+            ></textarea>
+            <button
+              type="button"
+              class="botao-perigo"
+              [disabled]="
+                recebimentoEmAtualizacao === recebimento.id_recebimento ||
+                motivoEstornoRecebimento.trim().length < 3
+              "
+              (click)="confirmarEstornoRecebimento(recebimento)"
+            >
+              {{
+                recebimentoEmAtualizacao === recebimento.id_recebimento
+                  ? 'Estornando...'
+                  : 'Confirmar estorno'
+              }}
+            </button>
+            <button
+              type="button"
+              [disabled]="recebimentoEmAtualizacao === recebimento.id_recebimento"
+              (click)="desistirEstornoRecebimento()"
+            >
+              Voltar
+            </button>
+          </div>
+        </article>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'entregas'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>Entregas</h1>
+
+    <button type="button" (click)="abrirTela('dashboard')">
+      Voltar
+    </button>
+
+    <button
+      *ngIf="podeCadastrarEntrega()"
+      class="botao-novo"
+      type="button"
+      (click)="abrirTela('nova-entrega')"
+    >
+      + Nova Entrega
+    </button>
+
+    <button
+      type="button"
+      [disabled]="exportandoEntregas || !obterEntregasFiltradas().length"
+      (click)="exportarEntregasCsv()"
+    >
+      {{ exportandoEntregas ? 'Exportando...' : 'Exportar entregas CSV' }}
+    </button>
+
+    <p *ngIf="carregandoEntregas">Carregando entregas...</p>
+
+    <p class="erro" *ngIf="erroEntregas">
+      {{ erroEntregas }}
+    </p>
+
+    <p class="sucesso" *ngIf="mensagemEntregas">
+      {{ mensagemEntregas }}
+    </p>
+
+    <div class="filtros-listagem" *ngIf="!carregandoEntregas && entregas.length">
+      <div class="campo">
+        <label for="busca-entregas">Pesquisar</label>
+        <input
+          id="busca-entregas"
+          type="search"
+          [(ngModel)]="filtroEntregas.busca"
+          placeholder="Cliente, entregador ou número"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="status-entregas">Status</label>
+        <select id="status-entregas" [(ngModel)]="filtroEntregas.status">
+          <option value="">Todos os status</option>
+          <option value="CADASTRADA">Cadastrada</option>
+          <option value="AGENDADA">Agendada</option>
+          <option value="EM_SEPARACAO">Em separação</option>
+          <option value="PRONTA_PARA_ENTREGA">Pronta para entrega</option>
+          <option value="EM_ROTA">Em rota</option>
+          <option value="NAO_ENTREGUE">Não entregue</option>
+          <option value="ENTREGUE">Entregue</option>
+          <option value="CANCELADA">Cancelada</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="prazo-entregas">Prazo</label>
+        <select id="prazo-entregas" [(ngModel)]="filtroEntregas.prazo">
+          <option value="">Todos os prazos</option>
+          <option value="ATRASADA">Atrasadas</option>
+          <option value="HOJE">Para hoje</option>
+          <option value="FUTURA">Datas futuras</option>
+          <option value="SEM_DATA">Sem data</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="entregador-filtro-entregas">Entregador</label>
+        <select
+          id="entregador-filtro-entregas"
+          [(ngModel)]="filtroEntregas.entregador"
+        >
+          <option value="">Todos os entregadores</option>
+          <option value="SEM_ENTREGADOR">Sem entregador</option>
+          <option
+            *ngFor="let entregador of obterEntregadoresParaFiltro()"
+            [value]="entregador.id_usuario"
+          >
+            {{ entregador.nome }}{{ entregador.ativo ? '' : ' (inativo)' }}
+          </option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="data-filtro-entregas">Data agendada</label>
+        <input
+          id="data-filtro-entregas"
+          type="date"
+          [(ngModel)]="filtroEntregas.data_agendada"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="ordem-entregas">Ordenar por</label>
+        <select id="ordem-entregas" [(ngModel)]="filtroEntregas.ordem">
+          <option value="recentes">Mais recentes</option>
+          <option value="antigos">Mais antigas</option>
+          <option value="az">Cliente (A-Z)</option>
+          <option value="za">Cliente (Z-A)</option>
+          <option value="data_proxima">Data mais próxima</option>
+          <option value="data_distante">Data mais distante</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label>&nbsp;</label>
+        <button
+          type="button"
+          [disabled]="!temFiltrosEntrega()"
+          (click)="limparFiltrosEntrega()"
+        >
+          Limpar filtros
+        </button>
+      </div>
+    </div>
+
+    <p *ngIf="!carregandoEntregas && entregas.length">
+      <strong>Prazos em aberto:</strong>
+      {{ contarEntregasPorPrazo('ATRASADA') }} atrasada(s),
+      {{ contarEntregasPorPrazo('HOJE') }} para hoje e
+      {{ contarEntregasPorPrazo('SEM_DATA') }} sem data.
+    </p>
+
+    <p *ngIf="!carregandoEntregas">
+      Encontradas {{ obterEntregasFiltradas().length }} de {{ entregas.length }} entregas
+    </p>
+
+    <p *ngIf="!carregandoEntregas && entregas.length === 0">
+      Nenhuma entrega cadastrada.
+    </p>
+
+    <p
+      class="aviso"
+      *ngIf="!carregandoEntregas && entregas.length && obterEntregasFiltradas().length === 0"
+    >
+      Nenhuma entrega corresponde aos filtros informados.
+    </p>
+
+    <div class="paginacao" *ngIf="obterEntregasFiltradas().length">
+      <label>
+        Por página
+        <select
+          [(ngModel)]="paginacao.entregas.porPagina"
+          (ngModelChange)="reiniciarPagina('entregas')"
+        >
+          <option *ngFor="let opcao of opcoesItensPorPagina" [ngValue]="opcao">
+            {{ opcao }}
+          </option>
+        </select>
+      </label>
+      <div class="navegacao-paginacao">
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterEntregasFiltradas().length, 'entregas') === 1"
+          (click)="alterarPagina('entregas', obterPaginaAtual(obterEntregasFiltradas().length, 'entregas') - 1, obterEntregasFiltradas().length)"
+        >
+          Anterior
+        </button>
+        <span>
+          Página {{ obterPaginaAtual(obterEntregasFiltradas().length, 'entregas') }} de
+          {{ obterTotalPaginas(obterEntregasFiltradas().length, 'entregas') }}
+        </span>
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterEntregasFiltradas().length, 'entregas') === obterTotalPaginas(obterEntregasFiltradas().length, 'entregas')"
+          (click)="alterarPagina('entregas', obterPaginaAtual(obterEntregasFiltradas().length, 'entregas') + 1, obterEntregasFiltradas().length)"
+        >
+          Próxima
+        </button>
+      </div>
+    </div>
+
+    <div class="lista-entregas" *ngIf="!carregandoEntregas">
+      <div
+        class="entrega-card"
+        *ngFor="let entrega of paginarLista(obterEntregasFiltradas(), 'entregas')"
+      >
+        <h3>Entrega #{{ entrega.id_entrega }}</h3>
+
+        <p><strong>Cliente:</strong> {{ obterNomeCliente(entrega.id_cliente) }}</p>
+        <p>
+          <strong>Endereço:</strong> {{ obterEnderecoCliente(entrega.id_cliente) }}
+          <a
+            *ngIf="obterLinkMapaCliente(entrega.id_cliente) as linkMapa"
+            [href]="linkMapa"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Abrir no mapa
+          </a>
+        </p>
+        <p *ngIf="obterTelefoneCliente(entrega.id_cliente) as telefoneCliente">
+          <strong>Telefone:</strong>
+          <a [href]="obterLinkTelefoneCliente(entrega.id_cliente)">
+            {{ telefoneCliente }}
+          </a>
+        </p>
+        <p>
+          <strong>Responsável:</strong>
+          {{ obterNomeUsuario(entrega.id_usuario_cadastro) }}
+        </p>
+        <p>
+          <strong>Entregador:</strong>
+          {{ obterNomeUsuario(entrega.id_entregador) }}
+        </p>
+        <p>
+          <strong>Cadastro:</strong>
+          {{ entrega.data_cadastro | date:'dd/MM/yyyy HH:mm' }}
+        </p>
+        <p>
+          <strong>Data agendada:</strong>
+          {{
+            entrega.data_agendada
+              ? (entrega.data_agendada | date:'dd/MM/yyyy':'UTC')
+              : 'Não agendada'
+          }}
+          <span
+            *ngIf="obterSituacaoPrazoEntrega(entrega) === 'ATRASADA'"
+            class="status-badge status-erro"
+          >
+            Atrasada
+          </span>
+          <span
+            *ngIf="obterSituacaoPrazoEntrega(entrega) === 'HOJE'"
+            class="status-badge status-informativo"
+          >
+            Para hoje
+          </span>
+        </p>
+        <p>
+          <strong>Status:</strong>
+          <span class="status-badge" [ngClass]="classeStatus(entrega.status)">
+            {{ formatarStatus(entrega.status) }}
+          </span>
+        </p>
+
+        <div class="etapas-entrega" aria-label="Etapas da entrega">
+          <span
+            *ngFor="let etapa of etapasEntregaVisual"
+            [class.concluida]="etapaEntregaConcluida(entrega.status, etapa.status)"
+            [class.atual]="entrega.status === etapa.status"
+          >
+            <i aria-hidden="true"></i>
+            <small>{{ etapa.rotulo }}</small>
+          </span>
+        </div>
+        <p>
+          <strong>Observação:</strong>
+          {{ entrega.observacao || 'Sem observação' }}
+        </p>
+
+        <div class="ocorrencia-entrega" *ngIf="entrega.motivo_nao_entrega">
+          <p>
+            <strong>Motivo da última tentativa não concluída:</strong>
+            {{ entrega.motivo_nao_entrega }}
+          </p>
+          <p *ngIf="entrega.data_ultima_tentativa">
+            <strong>Data da tentativa:</strong>
+            {{ entrega.data_ultima_tentativa | date:'dd/MM/yyyy HH:mm' }}
+          </p>
+        </div>
+
+        <p *ngIf="entrega.status === 'CANCELADA'">
+          <strong>Motivo do cancelamento:</strong>
+          {{ entrega.motivo_cancelamento }}
+        </p>
+        <p *ngIf="entrega.data_cancelamento">
+          <strong>Cancelada em:</strong>
+          {{ entrega.data_cancelamento | date:'dd/MM/yyyy HH:mm' }}
+        </p>
+
+        <p *ngIf="entrega.anexo_pedido">
+          <strong>Anexo:</strong>
+
+          <button
+            *ngIf="anexoEhArquivoInterno(entrega.anexo_pedido)"
+            type="button"
+            class="botao-arquivo"
+            [disabled]="arquivoEntregaEmDownload === entrega.id_entrega"
+            (click)="baixarArquivoEntrega(entrega.anexo_pedido, entrega.id_entrega)"
+          >
+            {{ arquivoEntregaEmDownload === entrega.id_entrega ? 'Baixando...' : 'Baixar anexo' }}
+          </button>
+
+          <a
+            *ngIf="anexoEhLink(entrega.anexo_pedido)"
+            [href]="entrega.anexo_pedido"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Abrir anexo
+          </a>
+
+          <span
+            *ngIf="
+              !anexoEhLink(entrega.anexo_pedido) &&
+              !anexoEhArquivoInterno(entrega.anexo_pedido)
+            "
+          >
+            {{ entrega.anexo_pedido }}
+          </span>
+        </p>
+
+        <p *ngIf="entrega.comprovante_entrega">
+          <strong>Comprovante:</strong>
+          <button
+            type="button"
+            class="botao-arquivo"
+            [disabled]="arquivoEntregaEmDownload === entrega.id_entrega"
+            (click)="baixarArquivoEntrega(entrega.comprovante_entrega, entrega.id_entrega)"
+          >
+            {{ arquivoEntregaEmDownload === entrega.id_entrega ? 'Baixando...' : 'Baixar comprovante' }}
+          </button>
+        </p>
+
+        <button
+          *ngIf="
+            podeEditarEntrega(entrega) &&
+            entregaEmEdicaoId !== entrega.id_entrega
+          "
+          type="button"
+          [disabled]="entregaEmAtualizacao === entrega.id_entrega"
+          (click)="abrirEdicaoEntrega(entrega)"
+        >
+          Editar entrega
+        </button>
+
+        <div
+          class="form-edicao-pedido"
+          *ngIf="entregaEmEdicaoId === entrega.id_entrega"
+        >
+          <h4>Editar entrega</h4>
+          <p class="erro" *ngIf="erroEdicaoEntrega">{{ erroEdicaoEntrega }}</p>
+
+          <div class="campo">
+            <label [for]="'cliente-edicao-entrega-' + entrega.id_entrega">
+              Cliente
+            </label>
+            <select
+              [id]="'cliente-edicao-entrega-' + entrega.id_entrega"
+              [name]="'cliente-edicao-entrega-' + entrega.id_entrega"
+              [(ngModel)]="formularioEdicaoEntrega.id_cliente"
+            >
+              <option [ngValue]="null">Selecione um cliente</option>
+              <option
+                *ngFor="let cliente of obterClientesAtivos()"
+                [ngValue]="cliente.id_cliente"
+              >
+                {{ cliente.nome }}
+              </option>
+            </select>
+          </div>
+
+          <div class="campo">
+            <label [for]="'entregador-edicao-entrega-' + entrega.id_entrega">
+              Entregador
+            </label>
+            <select
+              [id]="'entregador-edicao-entrega-' + entrega.id_entrega"
+              [name]="'entregador-edicao-entrega-' + entrega.id_entrega"
+              [(ngModel)]="formularioEdicaoEntrega.id_entregador"
+            >
+              <option [ngValue]="null">Sem entregador definido</option>
+              <option
+                *ngFor="let entregador of obterEntregadoresAtivos()"
+                [ngValue]="entregador.id_usuario"
+              >
+                {{ entregador.nome }}
+              </option>
+            </select>
+          </div>
+
+          <div class="campo">
+            <label [for]="'data-edicao-entrega-' + entrega.id_entrega">
+              Data agendada
+            </label>
+            <input
+              [id]="'data-edicao-entrega-' + entrega.id_entrega"
+              [name]="'data-edicao-entrega-' + entrega.id_entrega"
+              type="date"
+              [min]="formatarDataHoje()"
+              [(ngModel)]="formularioEdicaoEntrega.data_agendada"
+            />
+          </div>
+
+          <div class="campo">
+            <label [for]="'observacao-edicao-entrega-' + entrega.id_entrega">
+              Observação
+            </label>
+            <textarea
+              [id]="'observacao-edicao-entrega-' + entrega.id_entrega"
+              [name]="'observacao-edicao-entrega-' + entrega.id_entrega"
+              [(ngModel)]="formularioEdicaoEntrega.observacao"
+            ></textarea>
+          </div>
+
+          <div class="acoes-edicao-pedido">
+            <button
+              type="button"
+              [disabled]="salvandoEdicaoEntrega"
+              (click)="salvarEdicaoEntrega(entrega)"
+            >
+              {{ salvandoEdicaoEntrega ? 'Salvando...' : 'Salvar alterações' }}
+            </button>
+            <button
+              type="button"
+              [disabled]="salvandoEdicaoEntrega"
+              (click)="desistirEdicaoEntrega()"
+            >
+              Voltar
+            </button>
+          </div>
+        </div>
+
+        <div class="anexo-comprovante" *ngIf="podeAnexarComprovante(entrega)">
+          <label [for]="'comprovante-entrega-' + entrega.id_entrega">
+            {{ entrega.comprovante_entrega ? 'Substituir comprovante' : 'Anexar comprovante' }}
+          </label>
+          <input
+            [id]="'comprovante-entrega-' + entrega.id_entrega"
+            type="file"
+            accept=".pdf,.png,.jpg,.jpeg,.webp"
+            (change)="selecionarComprovanteEntrega($event, entrega.id_entrega)"
+          />
+          <small>PDF ou imagem de até 5 MB.</small>
+          <button
+            type="button"
+            [disabled]="
+              !comprovantesSelecionados[entrega.id_entrega] ||
+              entregaComprovanteEmAtualizacao === entrega.id_entrega
+            "
+            (click)="anexarComprovanteEntrega(entrega)"
+          >
+            {{
+              entregaComprovanteEmAtualizacao === entrega.id_entrega
+                ? 'Enviando...'
+                : 'Salvar comprovante'
+            }}
+          </button>
+        </div>
+
+        <div
+          class="agendamento-entrega"
+          *ngIf="
+            podeAlterarAgendamentoEntrega(entrega) &&
+            entregaEmEdicaoId !== entrega.id_entrega
+          "
+        >
+          <label [for]="'data-agendamento-entrega-' + entrega.id_entrega">
+            {{ entrega.status === 'CADASTRADA' ? 'Agendar entrega' : 'Reagendar entrega' }}
+          </label>
+          <input
+            [id]="'data-agendamento-entrega-' + entrega.id_entrega"
+            [name]="'data-agendamento-entrega-' + entrega.id_entrega"
+            type="date"
+            [min]="formatarDataHoje()"
+            [(ngModel)]="datasAgendamentoSelecionadas[entrega.id_entrega]"
+          />
+          <button
+            type="button"
+            [disabled]="
+              entregaEmAtualizacao === entrega.id_entrega ||
+              !datasAgendamentoSelecionadas[entrega.id_entrega] ||
+              (
+                entrega.status !== 'NAO_ENTREGUE' &&
+                datasAgendamentoSelecionadas[entrega.id_entrega] === entrega.data_agendada
+              )
+            "
+            (click)="salvarAgendamentoEntrega(entrega)"
+          >
+            {{
+              entregaEmAtualizacao === entrega.id_entrega
+                ? 'Salvando...'
+                : entrega.status === 'CADASTRADA'
+                  ? 'Agendar'
+                  : 'Salvar nova data'
+            }}
+          </button>
+        </div>
+
+        <div
+          class="atribuicao-entregador"
+          *ngIf="
+            podeGerenciarPreparacaoEntrega() &&
+            entrega.status !== 'EM_ROTA' &&
+            entrega.status !== 'ENTREGUE' &&
+            entrega.status !== 'CANCELADA' &&
+            entregaEmEdicaoId !== entrega.id_entrega
+          "
+        >
+          <label [for]="'entregador-entrega-' + entrega.id_entrega">
+            Atribuir entregador
+          </label>
+
+          <select
+            [id]="'entregador-entrega-' + entrega.id_entrega"
+            [name]="'entregador-entrega-' + entrega.id_entrega"
+            [(ngModel)]="entregadoresSelecionados[entrega.id_entrega]"
+          >
+            <option [ngValue]="null">Selecione um entregador</option>
+
+            <option
+              *ngFor="let entregador of obterEntregadoresAtivos()"
+              [ngValue]="entregador.id_usuario"
+            >
+              {{ entregador.nome }}
+            </option>
+          </select>
+
+          <button
+            type="button"
+            [disabled]="
+              entregaEmAtualizacao === entrega.id_entrega ||
+              entregadoresSelecionados[entrega.id_entrega] == null ||
+              entregadoresSelecionados[entrega.id_entrega] === entrega.id_entregador
+            "
+            (click)="atribuirEntregador(entrega)"
+          >
+            Salvar entregador
+          </button>
+        </div>
+
+        <ng-container *ngIf="obterAcaoEntrega(entrega.status) as acaoEntrega">
+          <button
+            *ngIf="podeAvancarEntrega(entrega.status)"
+            class="acao-entrega"
+            type="button"
+            [disabled]="
+              entregaEmAtualizacao === entrega.id_entrega ||
+              entregaEmEdicaoId === entrega.id_entrega
+            "
+            (click)="avancarEntrega(entrega)"
+          >
+            {{
+              entregaEmAtualizacao === entrega.id_entrega
+                ? 'Atualizando...'
+                : acaoEntrega.rotulo
+            }}
+          </button>
+        </ng-container>
+
+        <button
+          *ngIf="
+            podeRegistrarNaoEntrega(entrega) &&
+            entregaEmNaoEntrega !== entrega.id_entrega
+          "
+          type="button"
+          class="botao-perigo acao-entrega"
+          [disabled]="entregaEmAtualizacao === entrega.id_entrega"
+          (click)="abrirRegistroNaoEntrega(entrega.id_entrega)"
+        >
+          Registrar não entregue
+        </button>
+
+        <div
+          class="form-nao-entrega"
+          *ngIf="entregaEmNaoEntrega === entrega.id_entrega"
+        >
+          <label [for]="'motivo-nao-entrega-' + entrega.id_entrega">
+            Motivo da entrega não concluída
+          </label>
+          <textarea
+            [id]="'motivo-nao-entrega-' + entrega.id_entrega"
+            [name]="'motivo-nao-entrega-' + entrega.id_entrega"
+            [(ngModel)]="motivoNaoEntrega"
+            maxlength="500"
+            placeholder="Ex.: cliente ausente ou endereço fechado"
+          ></textarea>
+          <button
+            type="button"
+            class="botao-perigo"
+            [disabled]="
+              entregaEmAtualizacao === entrega.id_entrega ||
+              motivoNaoEntrega.trim().length < 3
+            "
+            (click)="confirmarNaoEntrega(entrega)"
+          >
+            {{
+              entregaEmAtualizacao === entrega.id_entrega
+                ? 'Registrando...'
+                : 'Confirmar tentativa'
+            }}
+          </button>
+          <button
+            type="button"
+            [disabled]="entregaEmAtualizacao === entrega.id_entrega"
+            (click)="desistirRegistroNaoEntrega()"
+          >
+            Voltar
+          </button>
+        </div>
+
+        <button
+          *ngIf="
+            podeCancelarEntrega(entrega) &&
+            entregaEmEdicaoId !== entrega.id_entrega &&
+            entregaEmCancelamento !== entrega.id_entrega
+          "
+          type="button"
+          class="botao-perigo acao-entrega"
+          [disabled]="entregaEmAtualizacao === entrega.id_entrega"
+          (click)="abrirCancelamentoEntrega(entrega.id_entrega)"
+        >
+          Cancelar entrega
+        </button>
+
+        <div
+          class="form-cancelamento-entrega"
+          *ngIf="entregaEmCancelamento === entrega.id_entrega"
+        >
+          <label [for]="'motivo-cancelamento-entrega-' + entrega.id_entrega">
+            Motivo do cancelamento
+          </label>
+          <textarea
+            [id]="'motivo-cancelamento-entrega-' + entrega.id_entrega"
+            [name]="'motivo-cancelamento-entrega-' + entrega.id_entrega"
+            [(ngModel)]="motivoCancelamentoEntrega"
+            maxlength="500"
+            placeholder="Explique por que esta entrega deve ser cancelada"
+          ></textarea>
+          <button
+            type="button"
+            class="botao-perigo"
+            [disabled]="
+              entregaEmAtualizacao === entrega.id_entrega ||
+              motivoCancelamentoEntrega.trim().length < 3
+            "
+            (click)="confirmarCancelamentoEntrega(entrega)"
+          >
+            {{
+              entregaEmAtualizacao === entrega.id_entrega
+                ? 'Cancelando...'
+                : 'Confirmar cancelamento'
+            }}
+          </button>
+          <button
+            type="button"
+            [disabled]="entregaEmAtualizacao === entrega.id_entrega"
+            (click)="desistirCancelamentoEntrega()"
+          >
+            Voltar
+          </button>
+        </div>
+
+        <button
+          type="button"
+          class="botao-historico"
+          [disabled]="
+            carregandoHistoricoEntrega &&
+            entregaHistoricoSelecionada === entrega.id_entrega
+          "
+          (click)="alternarHistoricoEntrega(entrega.id_entrega)"
+        >
+          {{
+            entregaHistoricoSelecionada === entrega.id_entrega
+              ? 'Ocultar histórico'
+              : 'Ver histórico'
+          }}
+        </button>
+
+        <section
+          class="painel-historico"
+          *ngIf="entregaHistoricoSelecionada === entrega.id_entrega"
+        >
+          <h4>Histórico da entrega</h4>
+
+          <p *ngIf="carregandoHistoricoEntrega">Carregando histórico...</p>
+
+          <p class="erro" *ngIf="erroHistoricoEntrega">
+            {{ erroHistoricoEntrega }}
+          </p>
+
+          <p
+            *ngIf="
+              !carregandoHistoricoEntrega &&
+              !erroHistoricoEntrega &&
+              historicoEntrega.length === 0
+            "
+          >
+            Nenhum evento registrado.
+          </p>
+
+          <ol
+            class="linha-do-tempo"
+            *ngIf="!carregandoHistoricoEntrega && historicoEntrega.length"
+          >
+            <li *ngFor="let evento of historicoEntrega">
+              <div class="marcador-historico"></div>
+              <div class="conteudo-historico">
+                <strong>{{ formatarAcaoHistorico(evento.acao) }}</strong>
+                <p>{{ evento.descricao || 'Sem detalhes adicionais.' }}</p>
+                <small>
+                  {{ obterNomeUsuario(evento.id_usuario) }} ·
+                  {{ evento.data_hora | date:'dd/MM/yyyy HH:mm' }}
+                </small>
+              </div>
+            </li>
+          </ol>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'nova-entrega'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>Nova Entrega</h1>
+
+    <button type="button" (click)="abrirTela('entregas')">
+      Voltar
+    </button>
+
+    <p *ngIf="carregandoEntregas">Carregando clientes e entregadores...</p>
+
+    <p class="erro" *ngIf="erroNovaEntrega">
+      {{ erroNovaEntrega }}
+    </p>
+
+    <p class="erro" *ngIf="erroEntregas">
+      {{ erroEntregas }}
+    </p>
+
+    <form
+      *ngIf="!carregandoEntregas"
+      #formEntrega="ngForm"
+      (ngSubmit)="criarEntrega()"
+    >
+      <div class="campo">
+        <label for="cliente-entrega">Cliente ativo</label>
+
+        <select
+          id="cliente-entrega"
+          name="cliente-entrega"
+          [(ngModel)]="novaEntrega.id_cliente"
+          required
+        >
+          <option [ngValue]="null">Selecione um cliente</option>
+
+          <option
+            *ngFor="let cliente of obterClientesAtivos()"
+            [ngValue]="cliente.id_cliente"
+          >
+            {{ cliente.nome }} - {{ cliente.cidade }}/{{ cliente.uf }}
+          </option>
+        </select>
+      </div>
+
+      <p class="aviso" *ngIf="obterClientesAtivos().length === 0">
+        Não há clientes ativos cadastrados.
+      </p>
+
+      <div class="campo">
+        <label for="entregador-nova-entrega">Entregador</label>
+
+        <select
+          id="entregador-nova-entrega"
+          name="entregador-nova-entrega"
+          [(ngModel)]="novaEntrega.id_entregador"
+        >
+          <option [ngValue]="null">Definir posteriormente</option>
+
+          <option
+            *ngFor="let entregador of obterEntregadoresAtivos()"
+            [ngValue]="entregador.id_usuario"
+          >
+            {{ entregador.nome }}
+          </option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="data-nova-entrega">Data agendada</label>
+
+        <input
+          id="data-nova-entrega"
+          type="date"
+          name="data-nova-entrega"
+          [(ngModel)]="novaEntrega.data_agendada"
+          [min]="dataHoje"
+          [required]="novaEntrega.id_entregador !== null"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="arquivo-nova-entrega">Arquivo do pedido/notinha</label>
+
+        <input
+          id="arquivo-nova-entrega"
+          type="file"
+          accept=".pdf,.png,.jpg,.jpeg,.webp"
+          (change)="selecionarArquivoNovaEntrega($event)"
+        />
+        <small>PDF ou imagem de até 5 MB.</small>
+      </div>
+
+      <div class="campo">
+        <label for="anexo-nova-entrega">Ou informe um link externo</label>
+
+        <input
+          id="anexo-nova-entrega"
+          type="text"
+          name="anexo-nova-entrega"
+          [(ngModel)]="novaEntrega.anexo_pedido"
+          maxlength="255"
+          placeholder="Ex.: https://..."
+        />
+      </div>
+
+      <p class="aviso" *ngIf="novaEntrega.id_entregador !== null">
+        Ao definir um entregador, a data e um arquivo ou link são obrigatórios.
+      </p>
+
+      <div class="campo">
+        <label for="observacao-nova-entrega">Observação</label>
+
+        <textarea
+          id="observacao-nova-entrega"
+          name="observacao-nova-entrega"
+          [(ngModel)]="novaEntrega.observacao"
+          placeholder="Observação opcional"
+        ></textarea>
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="
+          criandoEntrega ||
+          formEntrega.invalid ||
+          obterClientesAtivos().length === 0
+        "
+      >
+        {{
+          enviandoArquivoEntrega
+            ? 'Enviando anexo...'
+            : (criandoEntrega ? 'Cadastrando entrega...' : 'Cadastrar Entrega')
+        }}
+      </button>
+    </form>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'clientes'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>Clientes</h1>
+
+    <button type="button" (click)="abrirTela('dashboard')">
+      Voltar
+    </button>
+
+    <button
+      *ngIf="podeEditarClientes()"
+      class="botao-novo"
+      type="button"
+      (click)="abrirNovoCliente()"
+    >
+      + Novo Cliente
+    </button>
+
+    <p *ngIf="carregandoClientes">Carregando clientes...</p>
+
+    <p class="erro" *ngIf="erroClientes">
+      {{ erroClientes }}
+    </p>
+
+    <p class="sucesso" *ngIf="mensagemClientes">
+      {{ mensagemClientes }}
+    </p>
+
+    <div class="filtros-listagem" *ngIf="!carregandoClientes && clientes.length">
+      <div class="campo">
+        <label for="busca-clientes">Pesquisar</label>
+        <input
+          id="busca-clientes"
+          type="search"
+          [(ngModel)]="filtroClientes.busca"
+          placeholder="Nome, documento ou cidade"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="status-clientes">Status</label>
+        <select id="status-clientes" [(ngModel)]="filtroClientes.status">
+          <option value="">Todos os status</option>
+          <option value="ATIVO">Ativo</option>
+          <option value="INATIVO">Inativo</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="ordem-clientes">Ordenar por</label>
+        <select id="ordem-clientes" [(ngModel)]="filtroClientes.ordem">
+          <option value="az">Nome (A-Z)</option>
+          <option value="za">Nome (Z-A)</option>
+          <option value="recentes">Mais recentes</option>
+          <option value="antigos">Mais antigos</option>
+        </select>
+      </div>
+    </div>
+
+    <p *ngIf="!carregandoClientes">
+      Encontrados {{ obterClientesFiltrados().length }} de {{ clientes.length }} clientes
+    </p>
+
+    <p *ngIf="!carregandoClientes && clientes.length === 0">
+      Nenhum cliente cadastrado.
+    </p>
+
+    <p
+      class="aviso"
+      *ngIf="!carregandoClientes && clientes.length && obterClientesFiltrados().length === 0"
+    >
+      Nenhum cliente corresponde aos filtros informados.
+    </p>
+
+    <div class="paginacao" *ngIf="obterClientesFiltrados().length">
+      <label>
+        Por página
+        <select
+          [(ngModel)]="paginacao.clientes.porPagina"
+          (ngModelChange)="reiniciarPagina('clientes')"
+        >
+          <option *ngFor="let opcao of opcoesItensPorPagina" [ngValue]="opcao">
+            {{ opcao }}
+          </option>
+        </select>
+      </label>
+      <div class="navegacao-paginacao">
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterClientesFiltrados().length, 'clientes') === 1"
+          (click)="alterarPagina('clientes', obterPaginaAtual(obterClientesFiltrados().length, 'clientes') - 1, obterClientesFiltrados().length)"
+        >
+          Anterior
+        </button>
+        <span>
+          Página {{ obterPaginaAtual(obterClientesFiltrados().length, 'clientes') }} de
+          {{ obterTotalPaginas(obterClientesFiltrados().length, 'clientes') }}
+        </span>
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterClientesFiltrados().length, 'clientes') === obterTotalPaginas(obterClientesFiltrados().length, 'clientes')"
+          (click)="alterarPagina('clientes', obterPaginaAtual(obterClientesFiltrados().length, 'clientes') + 1, obterClientesFiltrados().length)"
+        >
+          Próxima
+        </button>
+      </div>
+    </div>
+
+    <div class="lista-solicitacoes" *ngIf="!carregandoClientes">
+      <div
+        class="solicitacao-card"
+        *ngFor="let cliente of paginarLista(obterClientesFiltrados(), 'clientes')"
+      >
+        <h3>{{ cliente.nome }}</h3>
+
+        <p>
+          <strong>CPF/CNPJ:</strong>
+          {{ cliente.cpf_cnpj ? formatarCpfCnpj(cliente.cpf_cnpj) : 'Não informado' }}
+        </p>
+        <p>
+          <strong>Telefone:</strong>
+          {{ cliente.telefone ? formatarTelefone(cliente.telefone) : 'Não informado' }}
+        </p>
+        <p>
+          <strong>Endereço:</strong>
+          {{ cliente.endereco }}, {{ cliente.numero }} - {{ cliente.bairro }}
+        </p>
+        <p>
+          <strong>Cidade:</strong>
+          {{ cliente.cidade }}/{{ cliente.uf }}
+        </p>
+        <p>
+          <strong>Observação:</strong>
+          {{ cliente.observacao || 'Sem observação' }}
+        </p>
+        <p>
+          <strong>Status:</strong>
+          <span
+            class="status-badge"
+            [ngClass]="classeStatus(cliente.ativo ? 'ATIVO' : 'INATIVO')"
+          >
+            {{ formatarStatus(cliente.ativo ? 'ATIVO' : 'INATIVO') }}
+          </span>
+        </p>
+
+        <div class="acoes-cliente">
+          <button
+            *ngIf="podeEditarClientes()"
+            type="button"
+            (click)="editarCliente(cliente)"
+          >
+            Editar
+          </button>
+
+          <button
+            *ngIf="podeAlterarStatusCliente()"
+            type="button"
+            [class.botao-perigo]="cliente.ativo"
+            [class.botao-sucesso]="!cliente.ativo"
+            [disabled]="clienteEmAtualizacao === cliente.id_cliente"
+            (click)="alterarStatusCliente(cliente)"
+          >
+            {{
+              clienteEmAtualizacao === cliente.id_cliente
+                ? 'Atualizando...'
+                : (cliente.ativo ? 'Desativar' : 'Ativar')
+            }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'formulario-cliente'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>{{ clienteEmEdicaoId === null ? 'Novo Cliente' : 'Editar Cliente' }}</h1>
+
+    <button type="button" (click)="abrirTela('clientes')">
+      Voltar
+    </button>
+
+    <p class="erro" *ngIf="erroFormularioCliente">
+      {{ erroFormularioCliente }}
+    </p>
+
+    <form class="formulario-grid" #formCliente="ngForm" (ngSubmit)="salvarCliente()">
+      <div class="campo">
+        <label for="nome-cliente">Nome</label>
+
+        <input
+          id="nome-cliente"
+          type="text"
+          name="nome-cliente"
+          [(ngModel)]="formularioCliente.nome"
+          maxlength="120"
+          required
+        />
+      </div>
+
+      <div class="campo">
+        <label for="cpf-cnpj-cliente">CPF/CNPJ</label>
+
+        <input
+          id="cpf-cnpj-cliente"
+          type="text"
+          name="cpf-cnpj-cliente"
+          [(ngModel)]="formularioCliente.cpf_cnpj"
+          (ngModelChange)="aplicarMascaraCpfCnpjCliente()"
+          maxlength="18"
+          inputmode="numeric"
+          autocomplete="off"
+          placeholder="000.000.000-00"
+        />
+        <small>Informe um CPF ou CNPJ válido.</small>
+      </div>
+
+      <div class="campo">
+        <label for="telefone-cliente">Telefone</label>
+
+        <input
+          id="telefone-cliente"
+          type="text"
+          name="telefone-cliente"
+          [(ngModel)]="formularioCliente.telefone"
+          (ngModelChange)="aplicarMascaraTelefoneCliente()"
+          maxlength="24"
+          inputmode="tel"
+          autocomplete="tel"
+          placeholder="(00) 00000-0000"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="endereco-cliente">Endereço</label>
+
+        <input
+          id="endereco-cliente"
+          type="text"
+          name="endereco-cliente"
+          [(ngModel)]="formularioCliente.endereco"
+          maxlength="120"
+          required
+        />
+      </div>
+
+      <div class="campo">
+        <label for="numero-endereco-cliente">Número</label>
+
+        <input
+          id="numero-endereco-cliente"
+          type="text"
+          name="numero-endereco-cliente"
+          [(ngModel)]="formularioCliente.numero"
+          maxlength="20"
+          required
+        />
+      </div>
+
+      <div class="campo">
+        <label for="bairro-cliente">Bairro</label>
+
+        <input
+          id="bairro-cliente"
+          type="text"
+          name="bairro-cliente"
+          [(ngModel)]="formularioCliente.bairro"
+          maxlength="60"
+          required
+        />
+      </div>
+
+      <div class="campos-lado-a-lado">
+        <div class="campo">
+          <label for="cidade-cliente">Cidade</label>
+
+          <input
+            id="cidade-cliente"
+            type="text"
+            name="cidade-cliente"
+            [(ngModel)]="formularioCliente.cidade"
+            maxlength="60"
+            required
+          />
+        </div>
+
+        <div class="campo campo-uf">
+          <label for="uf-cliente">UF</label>
+
+          <input
+            id="uf-cliente"
+            type="text"
+            name="uf-cliente"
+            [(ngModel)]="formularioCliente.uf"
+            minlength="2"
+            maxlength="2"
+            required
+          />
+        </div>
+      </div>
+
+      <div class="campo">
+        <label for="observacao-cliente">Observação</label>
+
+        <textarea
+          id="observacao-cliente"
+          name="observacao-cliente"
+          [(ngModel)]="formularioCliente.observacao"
+          placeholder="Observação opcional"
+        ></textarea>
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="salvandoCliente || formCliente.invalid"
+      >
+        {{ salvandoCliente ? 'Salvando...' : 'Salvar Cliente' }}
+      </button>
+    </form>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'fornecedores'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>Fornecedores</h1>
+
+    <button type="button" (click)="abrirTela('dashboard')">
+      Voltar
+    </button>
+
+    <button
+      *ngIf="podeGerenciarFornecedores()"
+      class="botao-novo"
+      type="button"
+      (click)="abrirNovoFornecedor()"
+    >
+      + Novo Fornecedor
+    </button>
+
+    <p *ngIf="carregandoFornecedores">Carregando fornecedores...</p>
+
+    <p class="erro" *ngIf="erroFornecedores">
+      {{ erroFornecedores }}
+    </p>
+
+    <p class="sucesso" *ngIf="mensagemFornecedores">
+      {{ mensagemFornecedores }}
+    </p>
+
+    <div
+      class="filtros-listagem"
+      *ngIf="!carregandoFornecedores && fornecedores.length"
+    >
+      <div class="campo">
+        <label for="busca-fornecedores">Pesquisar</label>
+        <input
+          id="busca-fornecedores"
+          type="search"
+          [(ngModel)]="filtroFornecedores.busca"
+          placeholder="Nome, CNPJ ou e-mail"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="status-fornecedores">Status</label>
+        <select id="status-fornecedores" [(ngModel)]="filtroFornecedores.status">
+          <option value="">Todos os status</option>
+          <option value="ATIVO">Ativo</option>
+          <option value="INATIVO">Inativo</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="ordem-fornecedores">Ordenar por</label>
+        <select id="ordem-fornecedores" [(ngModel)]="filtroFornecedores.ordem">
+          <option value="az">Nome (A-Z)</option>
+          <option value="za">Nome (Z-A)</option>
+          <option value="recentes">Mais recentes</option>
+          <option value="antigos">Mais antigos</option>
+        </select>
+      </div>
+    </div>
+
+    <p *ngIf="!carregandoFornecedores">
+      Encontrados {{ obterFornecedoresFiltrados().length }} de
+      {{ fornecedores.length }} fornecedores
+    </p>
+
+    <p *ngIf="!carregandoFornecedores && fornecedores.length === 0">
+      Nenhum fornecedor cadastrado.
+    </p>
+
+    <p
+      class="aviso"
+      *ngIf="!carregandoFornecedores && fornecedores.length && obterFornecedoresFiltrados().length === 0"
+    >
+      Nenhum fornecedor corresponde aos filtros informados.
+    </p>
+
+    <div class="paginacao" *ngIf="obterFornecedoresFiltrados().length">
+      <label>
+        Por página
+        <select
+          [(ngModel)]="paginacao.fornecedores.porPagina"
+          (ngModelChange)="reiniciarPagina('fornecedores')"
+        >
+          <option *ngFor="let opcao of opcoesItensPorPagina" [ngValue]="opcao">
+            {{ opcao }}
+          </option>
+        </select>
+      </label>
+      <div class="navegacao-paginacao">
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterFornecedoresFiltrados().length, 'fornecedores') === 1"
+          (click)="alterarPagina('fornecedores', obterPaginaAtual(obterFornecedoresFiltrados().length, 'fornecedores') - 1, obterFornecedoresFiltrados().length)"
+        >
+          Anterior
+        </button>
+        <span>
+          Página {{ obterPaginaAtual(obterFornecedoresFiltrados().length, 'fornecedores') }} de
+          {{ obterTotalPaginas(obterFornecedoresFiltrados().length, 'fornecedores') }}
+        </span>
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterFornecedoresFiltrados().length, 'fornecedores') === obterTotalPaginas(obterFornecedoresFiltrados().length, 'fornecedores')"
+          (click)="alterarPagina('fornecedores', obterPaginaAtual(obterFornecedoresFiltrados().length, 'fornecedores') + 1, obterFornecedoresFiltrados().length)"
+        >
+          Próxima
+        </button>
+      </div>
+    </div>
+
+    <div class="lista-solicitacoes" *ngIf="!carregandoFornecedores">
+      <div
+        class="solicitacao-card"
+        *ngFor="let fornecedor of paginarLista(obterFornecedoresFiltrados(), 'fornecedores')"
+      >
+        <h3>{{ fornecedor.nome_fantasia || fornecedor.razao_social }}</h3>
+
+        <p><strong>Razão social:</strong> {{ fornecedor.razao_social }}</p>
+        <p>
+          <strong>CNPJ:</strong>
+          {{ fornecedor.cnpj ? formatarCnpj(fornecedor.cnpj) : 'Não informado' }}
+        </p>
+        <p>
+          <strong>Telefone:</strong>
+          {{ fornecedor.telefone ? formatarTelefone(fornecedor.telefone) : 'Não informado' }}
+        </p>
+        <p><strong>E-mail:</strong> {{ fornecedor.email || 'Não informado' }}</p>
+        <p>
+          <strong>Status:</strong>
+          <span
+            class="status-badge"
+            [ngClass]="classeStatus(fornecedor.ativo ? 'ATIVO' : 'INATIVO')"
+          >
+            {{ formatarStatus(fornecedor.ativo ? 'ATIVO' : 'INATIVO') }}
+          </span>
+        </p>
+
+        <div class="acoes-cliente" *ngIf="podeGerenciarFornecedores()">
+          <button type="button" (click)="editarFornecedor(fornecedor)">
+            Editar
+          </button>
+
+          <button
+            type="button"
+            [class.botao-perigo]="fornecedor.ativo"
+            [class.botao-sucesso]="!fornecedor.ativo"
+            [disabled]="fornecedorEmAtualizacao === fornecedor.id_fornecedor"
+            (click)="alterarStatusFornecedor(fornecedor)"
+          >
+            {{
+              fornecedorEmAtualizacao === fornecedor.id_fornecedor
+                ? 'Atualizando...'
+                : (fornecedor.ativo ? 'Desativar' : 'Ativar')
+            }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'formulario-fornecedor'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>
+      {{ fornecedorEmEdicaoId === null ? 'Novo Fornecedor' : 'Editar Fornecedor' }}
+    </h1>
+
+    <button type="button" (click)="abrirTela('fornecedores')">
+      Voltar
+    </button>
+
+    <p class="erro" *ngIf="erroFormularioFornecedor">
+      {{ erroFormularioFornecedor }}
+    </p>
+
+    <form class="formulario-grid" #formFornecedor="ngForm" (ngSubmit)="salvarFornecedor()">
+      <div class="campo">
+        <label for="razao-social-fornecedor">Razão social</label>
+
+        <input
+          id="razao-social-fornecedor"
+          type="text"
+          name="razao-social-fornecedor"
+          [(ngModel)]="formularioFornecedor.razao_social"
+          maxlength="120"
+          required
+        />
+      </div>
+
+      <div class="campo">
+        <label for="nome-fantasia-fornecedor">Nome fantasia</label>
+
+        <input
+          id="nome-fantasia-fornecedor"
+          type="text"
+          name="nome-fantasia-fornecedor"
+          [(ngModel)]="formularioFornecedor.nome_fantasia"
+          maxlength="120"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="cnpj-fornecedor">CNPJ</label>
+
+        <input
+          id="cnpj-fornecedor"
+          type="text"
+          name="cnpj-fornecedor"
+          [(ngModel)]="formularioFornecedor.cnpj"
+          (ngModelChange)="aplicarMascaraCnpjFornecedor()"
+          maxlength="18"
+          inputmode="numeric"
+          autocomplete="off"
+          placeholder="00.000.000/0000-00"
+          required
+        />
+        <small>Informe um CNPJ válido.</small>
+      </div>
+
+      <div class="campo">
+        <label for="telefone-fornecedor">Telefone</label>
+
+        <input
+          id="telefone-fornecedor"
+          type="text"
+          name="telefone-fornecedor"
+          [(ngModel)]="formularioFornecedor.telefone"
+          (ngModelChange)="aplicarMascaraTelefoneFornecedor()"
+          maxlength="24"
+          inputmode="tel"
+          autocomplete="tel"
+          placeholder="(00) 00000-0000"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="email-fornecedor">E-mail</label>
+
+        <input
+          id="email-fornecedor"
+          type="email"
+          name="email-fornecedor"
+          [(ngModel)]="formularioFornecedor.email"
+          maxlength="100"
+        />
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="salvandoFornecedor || formFornecedor.invalid"
+      >
+        {{ salvandoFornecedor ? 'Salvando...' : 'Salvar Fornecedor' }}
+      </button>
+    </form>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'produtos'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>Produtos</h1>
+
+    <button type="button" (click)="abrirTela('dashboard')">
+      Voltar
+    </button>
+
+    <button
+      *ngIf="podeGerenciarProdutos()"
+      class="botao-novo"
+      type="button"
+      (click)="abrirNovoProduto()"
+    >
+      + Novo Produto
+    </button>
+
+    <p *ngIf="carregandoProdutosTela">Carregando produtos...</p>
+
+    <p class="erro" *ngIf="erroProdutos">
+      {{ erroProdutos }}
+    </p>
+
+    <p class="sucesso" *ngIf="mensagemProdutos">
+      {{ mensagemProdutos }}
+    </p>
+
+    <div
+      class="filtros-listagem"
+      *ngIf="!carregandoProdutosTela && produtos.length"
+    >
+      <div class="campo">
+        <label for="busca-produtos">Pesquisar</label>
+        <input
+          id="busca-produtos"
+          type="search"
+          [(ngModel)]="filtroProdutos.busca"
+          placeholder="Código, nome, categoria ou marca"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="status-produtos">Status</label>
+        <select id="status-produtos" [(ngModel)]="filtroProdutos.status">
+          <option value="">Todos os status</option>
+          <option value="ATIVO">Ativo</option>
+          <option value="INATIVO">Inativo</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="ordem-produtos">Ordenar por</label>
+        <select id="ordem-produtos" [(ngModel)]="filtroProdutos.ordem">
+          <option value="az">Nome (A-Z)</option>
+          <option value="za">Nome (Z-A)</option>
+          <option value="recentes">Mais recentes</option>
+          <option value="antigos">Mais antigos</option>
+        </select>
+      </div>
+    </div>
+
+    <p *ngIf="!carregandoProdutosTela">
+      Encontrados {{ obterProdutosFiltrados().length }} de {{ produtos.length }} produtos
+    </p>
+
+    <p *ngIf="!carregandoProdutosTela && produtos.length === 0">
+      Nenhum produto cadastrado.
+    </p>
+
+    <p
+      class="aviso"
+      *ngIf="!carregandoProdutosTela && produtos.length && obterProdutosFiltrados().length === 0"
+    >
+      Nenhum produto corresponde aos filtros informados.
+    </p>
+
+    <div class="paginacao" *ngIf="obterProdutosFiltrados().length">
+      <label>
+        Por página
+        <select
+          [(ngModel)]="paginacao.produtos.porPagina"
+          (ngModelChange)="reiniciarPagina('produtos')"
+        >
+          <option *ngFor="let opcao of opcoesItensPorPagina" [ngValue]="opcao">
+            {{ opcao }}
+          </option>
+        </select>
+      </label>
+      <div class="navegacao-paginacao">
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterProdutosFiltrados().length, 'produtos') === 1"
+          (click)="alterarPagina('produtos', obterPaginaAtual(obterProdutosFiltrados().length, 'produtos') - 1, obterProdutosFiltrados().length)"
+        >
+          Anterior
+        </button>
+        <span>
+          Página {{ obterPaginaAtual(obterProdutosFiltrados().length, 'produtos') }} de
+          {{ obterTotalPaginas(obterProdutosFiltrados().length, 'produtos') }}
+        </span>
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterProdutosFiltrados().length, 'produtos') === obterTotalPaginas(obterProdutosFiltrados().length, 'produtos')"
+          (click)="alterarPagina('produtos', obterPaginaAtual(obterProdutosFiltrados().length, 'produtos') + 1, obterProdutosFiltrados().length)"
+        >
+          Próxima
+        </button>
+      </div>
+    </div>
+
+    <div class="lista-solicitacoes" *ngIf="!carregandoProdutosTela">
+      <div
+        class="solicitacao-card"
+        *ngFor="let produto of paginarLista(obterProdutosFiltrados(), 'produtos')"
+      >
+        <h3>{{ produto.nome }}</h3>
+
+        <p><strong>Código:</strong> {{ produto.codigo }}</p>
+        <p><strong>Categoria:</strong> {{ produto.categoria || 'Não informada' }}</p>
+        <p><strong>Marca:</strong> {{ produto.marca || 'Não informada' }}</p>
+        <p><strong>Unidade:</strong> {{ produto.unidade }}</p>
+        <p>
+          <strong>Descrição:</strong>
+          {{ produto.descricao || 'Sem descrição' }}
+        </p>
+        <p>
+          <strong>Status:</strong>
+          <span
+            class="status-badge"
+            [ngClass]="classeStatus(produto.ativo ? 'ATIVO' : 'INATIVO')"
+          >
+            {{ formatarStatus(produto.ativo ? 'ATIVO' : 'INATIVO') }}
+          </span>
+        </p>
+
+        <div class="acoes-cliente">
+          <button
+            *ngIf="podeGerenciarProdutos()"
+            type="button"
+            (click)="editarProduto(produto)"
+          >
+            Editar
+          </button>
+
+          <button
+            *ngIf="podeAlterarStatusProduto()"
+            type="button"
+            [class.botao-perigo]="produto.ativo"
+            [class.botao-sucesso]="!produto.ativo"
+            [disabled]="produtoEmAtualizacao === produto.id_produto"
+            (click)="alterarStatusProduto(produto)"
+          >
+            {{
+              produtoEmAtualizacao === produto.id_produto
+                ? 'Atualizando...'
+                : (produto.ativo ? 'Desativar' : 'Ativar')
+            }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'formulario-produto'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>{{ produtoEmEdicaoId === null ? 'Novo Produto' : 'Editar Produto' }}</h1>
+
+    <button type="button" (click)="abrirTela('produtos')">
+      Voltar
+    </button>
+
+    <p class="erro" *ngIf="erroFormularioProduto">
+      {{ erroFormularioProduto }}
+    </p>
+
+    <form class="formulario-grid" #formProduto="ngForm" (ngSubmit)="salvarProduto()">
+      <div class="campo">
+        <label for="codigo-produto">Código</label>
+
+        <input
+          id="codigo-produto"
+          type="text"
+          name="codigo-produto"
+          [(ngModel)]="formularioProduto.codigo"
+          maxlength="30"
+          required
+        />
+      </div>
+
+      <div class="campo">
+        <label for="nome-produto">Nome</label>
+
+        <input
+          id="nome-produto"
+          type="text"
+          name="nome-produto"
+          [(ngModel)]="formularioProduto.nome"
+          maxlength="100"
+          required
+        />
+      </div>
+
+      <div class="campo">
+        <label for="categoria-produto">Categoria</label>
+
+        <input
+          id="categoria-produto"
+          type="text"
+          name="categoria-produto"
+          [(ngModel)]="formularioProduto.categoria"
+          maxlength="100"
+          required
+        />
+      </div>
+
+      <div class="campo">
+        <label for="marca-produto">Marca</label>
+
+        <input
+          id="marca-produto"
+          type="text"
+          name="marca-produto"
+          [(ngModel)]="formularioProduto.marca"
+          maxlength="100"
+          required
+        />
+      </div>
+
+      <div class="campo">
+        <label for="unidade-produto">Unidade</label>
+
+        <input
+          id="unidade-produto"
+          type="text"
+          name="unidade-produto"
+          [(ngModel)]="formularioProduto.unidade"
+          placeholder="Ex.: UN, CX, M"
+          maxlength="20"
+          required
+        />
+      </div>
+
+      <div class="campo">
+        <label for="descricao-produto">Descrição</label>
+
+        <textarea
+          id="descricao-produto"
+          name="descricao-produto"
+          [(ngModel)]="formularioProduto.descricao"
+          placeholder="Descrição opcional"
+        ></textarea>
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="salvandoProduto || formProduto.invalid"
+      >
+        {{ salvandoProduto ? 'Salvando...' : 'Salvar Produto' }}
+      </button>
+    </form>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'notificacoes'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>Notificações</h1>
+
+    <button type="button" (click)="abrirTela('dashboard')">
+      Voltar
+    </button>
+
+    <button
+      *ngIf="contarNotificacoesNaoLidas() > 0"
+      class="botao-novo"
+      type="button"
+      [disabled]="carregandoNotificacoes || marcandoTodasNotificacoes"
+      (click)="marcarTodasNotificacoesComoLidas()"
+    >
+      {{ marcandoTodasNotificacoes ? 'Atualizando...' : 'Marcar todas como lidas' }}
+    </button>
+
+    <p *ngIf="carregandoNotificacoes">Carregando notificações...</p>
+
+    <p class="erro" *ngIf="erroNotificacoes">
+      {{ erroNotificacoes }}
+    </p>
+
+    <p class="sucesso" *ngIf="mensagemNotificacoes">
+      {{ mensagemNotificacoes }}
+    </p>
+
+    <p *ngIf="!carregandoNotificacoes">
+      Não lidas: {{ contarNotificacoesNaoLidas() }}
+    </p>
+
+    <p class="texto-auxiliar">
+      Atualização automática a cada minuto.
+      <span *ngIf="ultimaAtualizacaoNotificacoes">
+        Última atualização: {{ ultimaAtualizacaoNotificacoes | date:'HH:mm:ss' }}.
+      </span>
+    </p>
+
+    <div
+      class="filtros-listagem"
+      *ngIf="!carregandoNotificacoes && notificacoes.length"
+    >
+      <div class="campo">
+        <label for="busca-notificacoes">Pesquisar</label>
+        <input
+          id="busca-notificacoes"
+          type="search"
+          [(ngModel)]="filtroNotificacoes.busca"
+          placeholder="Título ou mensagem"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="status-notificacoes">Status</label>
+        <select id="status-notificacoes" [(ngModel)]="filtroNotificacoes.status">
+          <option value="">Todos os status</option>
+          <option value="NAO_LIDA">Não lida</option>
+          <option value="LIDA">Lida</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="ordem-notificacoes">Ordenar por</label>
+        <select id="ordem-notificacoes" [(ngModel)]="filtroNotificacoes.ordem">
+          <option value="recentes">Mais recentes</option>
+          <option value="antigos">Mais antigas</option>
+          <option value="az">Título (A-Z)</option>
+          <option value="za">Título (Z-A)</option>
+        </select>
+      </div>
+    </div>
+
+    <p *ngIf="!carregandoNotificacoes">
+      Encontradas {{ obterNotificacoesFiltradas().length }} de
+      {{ notificacoes.length }} notificações
+    </p>
+
+    <p *ngIf="!carregandoNotificacoes && notificacoes.length === 0">
+      Nenhuma notificação encontrada.
+    </p>
+
+    <p
+      class="aviso"
+      *ngIf="!carregandoNotificacoes && notificacoes.length && obterNotificacoesFiltradas().length === 0"
+    >
+      Nenhuma notificação corresponde aos filtros informados.
+    </p>
+
+    <div class="paginacao" *ngIf="obterNotificacoesFiltradas().length">
+      <label>
+        Por página
+        <select
+          [(ngModel)]="paginacao.notificacoes.porPagina"
+          (ngModelChange)="reiniciarPagina('notificacoes')"
+        >
+          <option *ngFor="let opcao of opcoesItensPorPagina" [ngValue]="opcao">
+            {{ opcao }}
+          </option>
+        </select>
+      </label>
+      <div class="navegacao-paginacao">
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterNotificacoesFiltradas().length, 'notificacoes') === 1"
+          (click)="alterarPagina('notificacoes', obterPaginaAtual(obterNotificacoesFiltradas().length, 'notificacoes') - 1, obterNotificacoesFiltradas().length)"
+        >
+          Anterior
+        </button>
+        <span>
+          Página {{ obterPaginaAtual(obterNotificacoesFiltradas().length, 'notificacoes') }} de
+          {{ obterTotalPaginas(obterNotificacoesFiltradas().length, 'notificacoes') }}
+        </span>
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterNotificacoesFiltradas().length, 'notificacoes') === obterTotalPaginas(obterNotificacoesFiltradas().length, 'notificacoes')"
+          (click)="alterarPagina('notificacoes', obterPaginaAtual(obterNotificacoesFiltradas().length, 'notificacoes') + 1, obterNotificacoesFiltradas().length)"
+        >
+          Próxima
+        </button>
+      </div>
+    </div>
+
+    <div class="lista-solicitacoes" *ngIf="!carregandoNotificacoes">
+      <div
+        class="solicitacao-card"
+        [class.notificacao-nao-lida]="!notificacao.lida"
+        *ngFor="let notificacao of paginarLista(obterNotificacoesFiltradas(), 'notificacoes')"
+      >
+        <h3>{{ notificacao.titulo }}</h3>
+
+        <p>{{ notificacao.mensagem }}</p>
+        <p>
+          <strong>Data:</strong>
+          {{ notificacao.data_hora | date:'dd/MM/yyyy HH:mm' }}
+        </p>
+        <p>
+          <strong>Status:</strong>
+          <span
+            class="status-badge"
+            [ngClass]="classeStatus(notificacao.lida ? 'LIDA' : 'NAO_LIDA')"
+          >
+            {{ formatarStatus(notificacao.lida ? 'LIDA' : 'NAO_LIDA') }}
+          </span>
+        </p>
+
+        <div class="acoes-cliente" *ngIf="!notificacao.lida">
+          <button
+            type="button"
+            [disabled]="
+              notificacaoEmAtualizacao === notificacao.id_notificacao
+            "
+            (click)="marcarNotificacaoComoLida(notificacao)"
+          >
+            {{
+              notificacaoEmAtualizacao === notificacao.id_notificacao
+                ? 'Atualizando...'
+                : 'Marcar como lida'
+            }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'solicitacoes'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>Solicitações de Compra</h1>
+
+    <button (click)="abrirTela('dashboard')">
+      Voltar
+    </button>
+
+    <button
+      *ngIf="podeAcessarSolicitacoes()"
+      class="botao-novo"
+      (click)="abrirTela('nova-solicitacao')"
+    >
+      + Nova Solicitação
+    </button>
+
+    <p *ngIf="carregandoSolicitacoes">
+      Carregando solicitações...
+    </p>
+
+    <p class="erro" *ngIf="erroSolicitacoes">
+      {{ erroSolicitacoes }}
+    </p>
+
+    <p class="sucesso" *ngIf="mensagemSolicitacoes">
+      {{ mensagemSolicitacoes }}
+    </p>
+
+    <div
+      class="filtros-listagem"
+      *ngIf="!carregandoSolicitacoes && solicitacoes.length"
+    >
+      <div class="campo">
+        <label for="busca-solicitacoes">Pesquisar</label>
+        <input
+          id="busca-solicitacoes"
+          type="search"
+          [(ngModel)]="filtroSolicitacoes.busca"
+          placeholder="Número, motivo ou prioridade"
+        />
+      </div>
+
+      <div class="campo">
+        <label for="status-solicitacoes">Status</label>
+        <select id="status-solicitacoes" [(ngModel)]="filtroSolicitacoes.status">
+          <option value="">Todos os status</option>
+          <option value="SOLICITADA">Solicitada</option>
+          <option value="EM_ANALISE">Em análise</option>
+          <option value="APROVADA">Aprovada</option>
+          <option value="REJEITADA">Rejeitada</option>
+          <option value="PEDIDO_REALIZADO">Pedido realizado</option>
+          <option value="CANCELADA">Cancelada</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="ordem-solicitacoes">Ordenar por</label>
+        <select id="ordem-solicitacoes" [(ngModel)]="filtroSolicitacoes.ordem">
+          <option value="recentes">Mais recentes</option>
+          <option value="antigos">Mais antigas</option>
+          <option value="az">Motivo (A-Z)</option>
+          <option value="za">Motivo (Z-A)</option>
+        </select>
+      </div>
+    </div>
+
+    <p *ngIf="!carregandoSolicitacoes">
+      Encontradas {{ obterSolicitacoesFiltradas().length }} de
+      {{ solicitacoes.length }} solicitações
+    </p>
+
+    <p
+      class="aviso"
+      *ngIf="!carregandoSolicitacoes && solicitacoes.length && obterSolicitacoesFiltradas().length === 0"
+    >
+      Nenhuma solicitação corresponde aos filtros informados.
+    </p>
+
+    <div class="paginacao" *ngIf="obterSolicitacoesFiltradas().length">
+      <label>
+        Por página
+        <select
+          [(ngModel)]="paginacao.solicitacoes.porPagina"
+          (ngModelChange)="reiniciarPagina('solicitacoes')"
+        >
+          <option *ngFor="let opcao of opcoesItensPorPagina" [ngValue]="opcao">
+            {{ opcao }}
+          </option>
+        </select>
+      </label>
+      <div class="navegacao-paginacao">
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterSolicitacoesFiltradas().length, 'solicitacoes') === 1"
+          (click)="alterarPagina('solicitacoes', obterPaginaAtual(obterSolicitacoesFiltradas().length, 'solicitacoes') - 1, obterSolicitacoesFiltradas().length)"
+        >
+          Anterior
+        </button>
+        <span>
+          Página {{ obterPaginaAtual(obterSolicitacoesFiltradas().length, 'solicitacoes') }} de
+          {{ obterTotalPaginas(obterSolicitacoesFiltradas().length, 'solicitacoes') }}
+        </span>
+        <button
+          type="button"
+          [disabled]="obterPaginaAtual(obterSolicitacoesFiltradas().length, 'solicitacoes') === obterTotalPaginas(obterSolicitacoesFiltradas().length, 'solicitacoes')"
+          (click)="alterarPagina('solicitacoes', obterPaginaAtual(obterSolicitacoesFiltradas().length, 'solicitacoes') + 1, obterSolicitacoesFiltradas().length)"
+        >
+          Próxima
+        </button>
+      </div>
+    </div>
+
+    <div class="lista-solicitacoes">
+      <div
+        class="solicitacao-card"
+        *ngFor="let solicitacao of paginarLista(obterSolicitacoesFiltradas(), 'solicitacoes')"
+      >
+        <h3>Solicitação #{{ solicitacao.id_solicitacao }}</h3>
+
+        <p>
+          <strong>Status:</strong>
+          <span
+            class="status-badge"
+            [ngClass]="classeStatus(solicitacao.status)"
+          >
+            {{ formatarStatus(solicitacao.status) }}
+          </span>
+        </p>
+
+        <p>
+          <strong>Prioridade:</strong>
+          <span class="status-badge" [ngClass]="classePrioridade(solicitacao.prioridade)">
+            {{ formatarStatus(solicitacao.prioridade) }}
+          </span>
+        </p>
+
+        <p>
+          <strong>Motivo:</strong>
+          {{ solicitacao.motivo }}
+        </p>
+
+        <p>
+          <strong>Observação:</strong>
+          {{ solicitacao.observacao || 'Sem observação' }}
+        </p>
+
+        <p *ngIf="solicitacao.motivo_rejeicao">
+        <strong>Motivo da rejeição:</strong>
+          {{ solicitacao.motivo_rejeicao }}
+        </p>
+
+        <p *ngIf="solicitacao.motivo_cancelamento">
+          <strong>Motivo do cancelamento:</strong>
+          {{ solicitacao.motivo_cancelamento }}
+        </p>
+
+        <p *ngIf="solicitacao.data_cancelamento">
+          <strong>Cancelada em:</strong>
+          {{ solicitacao.data_cancelamento | date:'dd/MM/yyyy HH:mm' }}
+        </p>
+
+        <div class="itens-resumo-card" *ngIf="solicitacao.itens?.length">
+        <p><strong>Produtos</strong></p>
+
+        <div class="solicitacao-item-resumo" *ngFor="let item of solicitacao.itens">
+          <span>{{ obterNomeProduto(item.id_produto) }}</span>
+          <strong>{{ item.quantidade }}</strong>
+          </div>
+        </div>
+
+        <button
+          *ngIf="
+            solicitacao.status === 'SOLICITADA' &&
+            podeAdministrarSolicitacoes()
+          "
+          [disabled]="solicitacaoEmAtualizacao === solicitacao.id_solicitacao"
+          (click)="iniciarAnalise(solicitacao.id_solicitacao)"
+        >
+          {{ solicitacaoEmAtualizacao === solicitacao.id_solicitacao ? 'Atualizando...' : 'Iniciar análise' }}
+        </button>
+
+        <div
+          *ngIf="
+            solicitacao.status === 'EM_ANALISE' &&
+            podeAdministrarSolicitacoes()
+          "
+        >
+        <button
+          class="botao-sucesso"
+          [disabled]="solicitacaoEmAtualizacao === solicitacao.id_solicitacao"
+          (click)="aprovarSolicitacao(solicitacao.id_solicitacao)"
+        >
+          Aprovar
+        </button>
+
+        <button
+          class="botao-perigo"
+          [disabled]="solicitacaoEmAtualizacao === solicitacao.id_solicitacao"
+          (click)="abrirRejeicaoSolicitacao(solicitacao.id_solicitacao)"
+        >
+          Rejeitar
+        </button>
+        </div>
+
+        <div
+          class="painel-rejeicao"
+          *ngIf="solicitacaoEmRejeicao === solicitacao.id_solicitacao"
+        >
+          <div class="campo">
+            <label [for]="'motivo-rejeicao-' + solicitacao.id_solicitacao">
+              Motivo da rejeição
+            </label>
+            <textarea
+              [id]="'motivo-rejeicao-' + solicitacao.id_solicitacao"
+              [name]="'motivo_rejeicao_' + solicitacao.id_solicitacao"
+              [(ngModel)]="motivoRejeicao"
+              placeholder="Explique por que a solicitação será rejeitada"
+            ></textarea>
+          </div>
+
+          <div class="acoes-cliente">
+            <button
+              type="button"
+              class="botao-perigo"
+              [disabled]="
+                solicitacaoEmAtualizacao === solicitacao.id_solicitacao ||
+                !motivoRejeicao.trim()
+              "
+              (click)="confirmarRejeicaoSolicitacao(solicitacao.id_solicitacao)"
+            >
+              {{ solicitacaoEmAtualizacao === solicitacao.id_solicitacao ? 'Rejeitando...' : 'Confirmar rejeição' }}
+            </button>
+
+            <button
+              type="button"
+              [disabled]="solicitacaoEmAtualizacao === solicitacao.id_solicitacao"
+              (click)="cancelarRejeicaoSolicitacao()"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+
+        <button
+          *ngIf="
+            podeEditarSolicitacao(solicitacao) &&
+            solicitacaoEmEdicaoId !== solicitacao.id_solicitacao
+          "
+          type="button"
+          (click)="abrirEdicaoSolicitacao(solicitacao)"
+        >
+          Editar solicitação
+        </button>
+
+        <div
+          class="form-edicao-solicitacao"
+          *ngIf="solicitacaoEmEdicaoId === solicitacao.id_solicitacao"
+        >
+          <h4>Editar solicitação</h4>
+
+          <p class="erro" *ngIf="erroEdicaoSolicitacao">
+            {{ erroEdicaoSolicitacao }}
+          </p>
+
+          <div class="campo">
+            <label [for]="'prioridade-edicao-' + solicitacao.id_solicitacao">
+              Prioridade
+            </label>
+            <select
+              [id]="'prioridade-edicao-' + solicitacao.id_solicitacao"
+              [name]="'prioridade-edicao-' + solicitacao.id_solicitacao"
+              [(ngModel)]="formularioEdicaoSolicitacao.prioridade"
+            >
+              <option value="BAIXA">Baixa</option>
+              <option value="MEDIA">Média</option>
+              <option value="ALTA">Alta</option>
+            </select>
+          </div>
+
+          <div class="campo">
+            <label [for]="'motivo-edicao-' + solicitacao.id_solicitacao">
+              Motivo
+            </label>
+            <input
+              [id]="'motivo-edicao-' + solicitacao.id_solicitacao"
+              [name]="'motivo-edicao-' + solicitacao.id_solicitacao"
+              type="text"
+              [(ngModel)]="formularioEdicaoSolicitacao.motivo"
+            />
+          </div>
+
+          <div class="campo">
+            <label [for]="'observacao-edicao-' + solicitacao.id_solicitacao">
+              Observação
+            </label>
+            <textarea
+              [id]="'observacao-edicao-' + solicitacao.id_solicitacao"
+              [name]="'observacao-edicao-' + solicitacao.id_solicitacao"
+              [(ngModel)]="formularioEdicaoSolicitacao.observacao"
+            ></textarea>
+          </div>
+
+          <div
+            class="item-solicitacao"
+            *ngFor="let item of formularioEdicaoSolicitacao.itens; let i = index"
+          >
+            <div class="campo">
+              <label [for]="'produto-edicao-' + solicitacao.id_solicitacao + '-' + i">
+                Produto
+              </label>
+              <select
+                [id]="'produto-edicao-' + solicitacao.id_solicitacao + '-' + i"
+                [name]="'produto-edicao-' + solicitacao.id_solicitacao + '-' + i"
+                [(ngModel)]="item.id_produto"
+              >
+                <option [ngValue]="null">Selecione um produto</option>
+                <option
+                  *ngFor="let produto of obterProdutosAtivos()"
+                  [ngValue]="produto.id_produto"
+                >
+                  {{ produto.nome }}
+                </option>
+              </select>
+            </div>
+
+            <div class="campo">
+              <label [for]="'quantidade-edicao-' + solicitacao.id_solicitacao + '-' + i">
+                Quantidade
+              </label>
+              <input
+                [id]="'quantidade-edicao-' + solicitacao.id_solicitacao + '-' + i"
+                [name]="'quantidade-edicao-' + solicitacao.id_solicitacao + '-' + i"
+                type="number"
+                min="1"
+                [(ngModel)]="item.quantidade"
+              />
+            </div>
+
+            <button
+              *ngIf="formularioEdicaoSolicitacao.itens.length > 1"
+              type="button"
+              (click)="removerItemEdicaoSolicitacao(i)"
+            >
+              Remover item
+            </button>
+          </div>
+
+          <button type="button" (click)="adicionarItemEdicaoSolicitacao()">
+            + Adicionar outro produto
+          </button>
+
+          <div class="acoes-edicao-solicitacao">
+            <button
+              type="button"
+              [disabled]="salvandoEdicaoSolicitacao"
+              (click)="salvarEdicaoSolicitacao(solicitacao)"
+            >
+              {{ salvandoEdicaoSolicitacao ? 'Salvando...' : 'Salvar alterações' }}
+            </button>
+            <button
+              type="button"
+              [disabled]="salvandoEdicaoSolicitacao"
+              (click)="desistirEdicaoSolicitacao()"
+            >
+              Voltar
+            </button>
+          </div>
+        </div>
+
+        <button
+          *ngIf="
+            podeCancelarSolicitacao(solicitacao) &&
+            solicitacaoEmCancelamento !== solicitacao.id_solicitacao
+          "
+          type="button"
+          class="botao-perigo"
+          [disabled]="solicitacaoEmAtualizacao === solicitacao.id_solicitacao"
+          (click)="abrirCancelamentoSolicitacao(solicitacao.id_solicitacao)"
+        >
+          Cancelar solicitação
+        </button>
+
+        <div
+          class="form-cancelamento-solicitacao"
+          *ngIf="solicitacaoEmCancelamento === solicitacao.id_solicitacao"
+        >
+          <label [for]="'motivo-cancelamento-solicitacao-' + solicitacao.id_solicitacao">
+            Motivo do cancelamento
+          </label>
+          <textarea
+            [id]="'motivo-cancelamento-solicitacao-' + solicitacao.id_solicitacao"
+            [name]="'motivo-cancelamento-solicitacao-' + solicitacao.id_solicitacao"
+            [(ngModel)]="motivoCancelamentoSolicitacao"
+            maxlength="500"
+            placeholder="Explique por que esta solicitação deve ser cancelada"
+          ></textarea>
+          <button
+            type="button"
+            class="botao-perigo"
+            [disabled]="
+              solicitacaoEmAtualizacao === solicitacao.id_solicitacao ||
+              motivoCancelamentoSolicitacao.trim().length < 3
+            "
+            (click)="confirmarCancelamentoSolicitacao(solicitacao)"
+          >
+            {{
+              solicitacaoEmAtualizacao === solicitacao.id_solicitacao
+                ? 'Cancelando...'
+                : 'Confirmar cancelamento'
+            }}
+          </button>
+          <button
+            type="button"
+            [disabled]="solicitacaoEmAtualizacao === solicitacao.id_solicitacao"
+            (click)="desistirCancelamentoSolicitacao()"
+          >
+            Voltar
+          </button>
+        </div>
+
+        <button
+          type="button"
+          class="botao-historico"
+          [disabled]="
+            carregandoHistoricoSolicitacao &&
+            solicitacaoHistoricoSelecionada === solicitacao.id_solicitacao
+          "
+          (click)="alternarHistoricoSolicitacao(solicitacao.id_solicitacao)"
+        >
+          {{
+            solicitacaoHistoricoSelecionada === solicitacao.id_solicitacao
+              ? 'Ocultar histórico'
+              : 'Ver histórico'
+          }}
+        </button>
+
+        <section
+          class="painel-historico"
+          *ngIf="solicitacaoHistoricoSelecionada === solicitacao.id_solicitacao"
+        >
+          <h4>Histórico da solicitação</h4>
+          <p *ngIf="carregandoHistoricoSolicitacao">Carregando histórico...</p>
+          <p class="erro" *ngIf="erroHistoricoSolicitacao">
+            {{ erroHistoricoSolicitacao }}
+          </p>
+          <p
+            *ngIf="
+              !carregandoHistoricoSolicitacao &&
+              !erroHistoricoSolicitacao &&
+              historicoSolicitacao.length === 0
+            "
+          >
+            Nenhum evento registrado.
+          </p>
+          <ol
+            class="linha-do-tempo"
+            *ngIf="!carregandoHistoricoSolicitacao && historicoSolicitacao.length"
+          >
+            <li *ngFor="let evento of historicoSolicitacao">
+              <div class="marcador-historico"></div>
+              <div class="conteudo-historico">
+                <strong>{{ formatarAcaoHistoricoSolicitacao(evento.acao) }}</strong>
+                <p>{{ evento.descricao || 'Sem detalhes adicionais.' }}</p>
+                <small>{{ evento.data_hora | date:'dd/MM/yyyy HH:mm' }}</small>
+              </div>
+            </li>
+          </ol>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="logado && telaAtual === 'nova-solicitacao'" class="dashboard">
+  <div class="dashboard-card">
+    <h1>Nova Solicitação de Compra</h1>
+
+    <button (click)="abrirTela('solicitacoes')">
+      Voltar
+    </button>
+
+    <p class="erro" *ngIf="erroNovaSolicitacao">
+      {{ erroNovaSolicitacao }}
+    </p>
+
+    <form>
+  <div class="campo">
+    <label>Prioridade</label>
+
+    <select
+      name="prioridade"
+      [(ngModel)]="novaSolicitacao.prioridade"
+    >
+      <option value="BAIXA">Baixa</option>
+      <option value="MEDIA">Média</option>
+      <option value="ALTA">Alta</option>
+    </select>
+  </div>
+
+  <div class="campo">
+    <label>Motivo</label>
+
+    <input
+      type="text"
+      name="motivo"
+      [(ngModel)]="novaSolicitacao.motivo"
+      placeholder="Informe o motivo da compra"
+    />
+  </div>
+
+  <div class="campo">
+    <label>Observação</label>
+
+    <textarea
+      name="observacao"
+      [(ngModel)]="novaSolicitacao.observacao"
+      placeholder="Observação opcional"
+    ></textarea>
+  </div>
+
+  <div
+  class="item-solicitacao"
+  *ngFor="let item of novaSolicitacao.itens; let i = index"
+>
+  <div class="campo">
+    <label>Produto</label>
+
+    <select
+      [name]="'id_produto_' + i"
+      [(ngModel)]="item.id_produto"
+    >
+      <option [ngValue]="null">
+        Selecione um produto
+      </option>
+
+      <option
+        *ngFor="let produto of obterProdutosAtivos()"
+        [ngValue]="produto.id_produto"
+      >
+        {{ produto.nome }}
+      </option>
+    </select>
+  </div>
+
+  <div class="campo">
+    <label>Quantidade</label>
+
+    <input
+      type="number"
+      [name]="'quantidade_' + i"
+      [(ngModel)]="item.quantidade"
+      min="1"
+    />
+  </div>
+
+  <button
+    type="button"
+    *ngIf="novaSolicitacao.itens.length > 1"
+    (click)="removerItem(i)"
+  >
+    Remover item
+  </button>
+</div>
+
+<button
+  type="button"
+  (click)="adicionarItem()"
+>
+  + Adicionar outro produto
+</button>
+
+  <button type="button" [disabled]="criandoSolicitacao" (click)="criarSolicitacao()">
+    {{ criandoSolicitacao ? 'Criando...' : 'Criar Solicitação' }}
+  </button>
+</form>
+  </div>
+</div>
