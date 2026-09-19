@@ -1,0 +1,15 @@
+BEGIN;
+
+ALTER TABLE recebimento
+ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'REGISTRADO';
+
+ALTER TABLE recebimento
+ADD COLUMN IF NOT EXISTS motivo_estorno TEXT;
+
+ALTER TABLE recebimento
+ADD COLUMN IF NOT EXISTS data_estorno TIMESTAMP;
+
+ALTER TABLE recebimento
+ADD COLUMN IF NOT EXISTS id_usuario_estorno INTEGER REFERENCES usuario(id_usuario);
+
+COMMIT;

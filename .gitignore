@@ -1,44 +1,34 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# Segredos e configurações locais
+.env
+.env.*
+!.env.docker.example
+!**/.env.example
 
-# Compiled output
-/dist
-/tmp
-/out-tsc
-/bazel-out
+# Backups e dados operacionais
+/backups/*
+!/backups/.gitkeep
+**/uploads/
+*.db
+*.sqlite
+*.sqlite3
 
-# Node
-/node_modules
-npm-debug.log
-yarn-error.log
+# Python
+**/venv/
+**/.venv/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.coverage
+**/htmlcov/
 
-# IDEs and editors
-.idea/
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
+# Node e Angular
+**/node_modules/
+**/dist/
+**/.angular/
+**/coverage/
 
-# Visual Studio Code
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/mcp.json
-.history/*
-
-# Miscellaneous
-/.angular/cache
-.sass-cache/
-/connect.lock
-/coverage
-/libpeerconnection.log
-testem.log
-/typings
-__screenshots__/
-
-# System files
+# Arquivos temporários e do sistema
+*.log
+*.tmp
 .DS_Store
 Thumbs.db

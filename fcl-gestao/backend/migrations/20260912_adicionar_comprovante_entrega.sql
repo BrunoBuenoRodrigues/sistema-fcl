@@ -1,0 +1,2 @@
+ALTER TABLE entrega
+ADD COLUMN IF NOT EXISTS comprovante_entrega VARCHAR(255);

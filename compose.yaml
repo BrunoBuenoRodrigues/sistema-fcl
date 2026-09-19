@@ -1,0 +1,122 @@
+name: sistema-fcl
+
+x-logging: &logging_padrao
+  driver: json-file
+  options:
+    max-size: "${LOG_MAX_SIZE:-10m}"
+    max-file: "${LOG_MAX_ARQUIVOS:-5}"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    logging: *logging_padrao
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-fcl_gestao}"
+      POSTGRES_USER: "${POSTGRES_USER:-fcl}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./fcl-gestao/backend
+    restart: unless-stopped
+    logging: *logging_padrao
+    environment:
+      APP_ENV: production
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: "${POSTGRES_DB:-fcl_gestao}"
+      DB_USER: "${POSTGRES_USER:-fcl}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD}"
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY:?Defina JWT_SECRET_KEY no arquivo .env}"
+      JWT_ALGORITHM: HS256
+      TOKEN_EXPIRACAO_MINUTOS: "${TOKEN_EXPIRACAO_MINUTOS:-60}"
+      LOGIN_MAX_TENTATIVAS: "${LOGIN_MAX_TENTATIVAS:-5}"
+      LOGIN_BLOQUEIO_MINUTOS: "${LOGIN_BLOQUEIO_MINUTOS:-15}"
+      ARQUIVO_ORFAO_RETENCAO_HORAS: "${ARQUIVO_ORFAO_RETENCAO_HORAS:-168}"
+      CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost:8080}"
+      ADMIN_INICIAL_NOME: "${ADMIN_INICIAL_NOME:-Administrador}"
+      ADMIN_INICIAL_LOGIN: "${ADMIN_INICIAL_LOGIN:-admin}"
+      ADMIN_INICIAL_SENHA: "${ADMIN_INICIAL_SENHA:?Defina ADMIN_INICIAL_SENHA no arquivo .env}"
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    logging: *logging_padrao
+    ports:
+      - "${APP_HOST:-127.0.0.1}:${APP_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/nginx-health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backup:
+    build:
+      context: ./infra/backup
+    restart: unless-stopped
+    logging: *logging_padrao
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: "${POSTGRES_DB:-fcl_gestao}"
+      DB_USER: "${POSTGRES_USER:-fcl}"
+      PGPASSWORD: "${POSTGRES_PASSWORD}"
+      BACKUP_INTERVALO_HORAS: "${BACKUP_INTERVALO_HORAS:-24}"
+      BACKUP_RETENCAO_DIAS: "${BACKUP_RETENCAO_DIAS:-30}"
+    volumes:
+      - ./backups:/backups
+      - uploads_data:/dados/uploads
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  monitor:
+    build:
+      context: ./infra/monitor
+    restart: unless-stopped
+    logging: *logging_padrao
+    environment:
+      MONITOR_INTERVALO_MINUTOS: "${MONITOR_INTERVALO_MINUTOS:-5}"
+      BACKUP_MAX_IDADE_HORAS: "${BACKUP_MAX_IDADE_HORAS:-26}"
+    volumes:
+      - ./backups:/backups:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      backup:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "test -s /tmp/monitor-ok && agora=$$(date +%s) && ultima=$$(cat /tmp/monitor-ok) && test $$((agora - ultima)) -lt $$((MONITOR_INTERVALO_MINUTOS * 60 + 120))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  postgres_data:
+  uploads_data:
