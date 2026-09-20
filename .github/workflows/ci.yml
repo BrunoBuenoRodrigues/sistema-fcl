@@ -20,7 +20,7 @@ jobs:
         working-directory: frontend
     steps:
       - name: Baixar código
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Configurar Node.js
         uses: actions/setup-node@v5
@@ -52,7 +52,7 @@ jobs:
       JWT_SECRET_KEY: chave-segura-apenas-para-ci-do-sistema-fcl
     steps:
       - name: Baixar código
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Configurar Python
         uses: actions/setup-python@v7
