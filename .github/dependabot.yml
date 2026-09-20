@@ -9,6 +9,18 @@ updates:
       time: "09:00"
       timezone: "America/Sao_Paulo"
     open-pull-requests-limit: 5
+    groups:
+      angular:
+        applies-to: "version-updates"
+        patterns:
+          - "@angular*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
     commit-message:
       prefix: "deps(frontend)"
 
