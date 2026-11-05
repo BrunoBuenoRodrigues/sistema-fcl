@@ -4,14 +4,11 @@ set -eu
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 temporario="/backups/.tmp-${timestamp}"
 destino="/backups/${timestamp}"
-retencao_dias="${BACKUP_RETENCAO_DIAS:-30}"
 
-case "$retencao_dias" in
-    ''|*[!0-9]*|0)
-        echo "BACKUP_RETENCAO_DIAS deve ser um número inteiro maior que zero." >&2
-        exit 1
-        ;;
-esac
+if [ -e "$temporario" ] || [ -e "$destino" ]; then
+    echo "Backup with the same timestamp already exists; nothing was overwritten." >&2
+    exit 1
+fi
 
 mkdir -p "$temporario"
 
@@ -40,13 +37,5 @@ tar -czf "$temporario/anexos.tar.gz" -C /dados/uploads .
 
 mv "$temporario" "$destino"
 trap - EXIT INT TERM
-
-find /backups \
-    -mindepth 1 \
-    -maxdepth 1 \
-    -type d \
-    -name '20??????T??????Z' \
-    -mtime "+$retencao_dias" \
-    -exec rm -rf -- {} +
 
 echo "$destino"

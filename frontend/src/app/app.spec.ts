@@ -800,6 +800,72 @@ describe('SistemaComponent', () => {
     expect(app.mensagemRecebimentos).toContain('estornado com sucesso');
   });
 
+  it('should fill receipt balances and summarize a total or partial entry', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    app.itensNovoRecebimento = [
+      { id_item_pedido: 1, saldo_pendente: 2, quantidade_recebida_agora: null },
+      { id_item_pedido: 2, saldo_pendente: 3.5, quantidade_recebida_agora: null }
+    ];
+
+    app.preencherTodosSaldosRecebimento();
+
+    expect(app.itensNovoRecebimento.map(item => item.quantidade_recebida_agora))
+      .toEqual([2, 3.5]);
+    expect(app.obterQuantidadeItensInformadosRecebimento()).toBe(2);
+    expect(app.obterTotalRecebimentoAgora()).toBe(5.5);
+    expect(app.recebimentoSeraTotal()).toBe(true);
+
+    app.itensNovoRecebimento[1].quantidade_recebida_agora = 1;
+    expect(app.recebimentoSeraTotal()).toBe(false);
+
+    app.limparQuantidadesRecebimento();
+    expect(app.temQuantidadeRecebimentoInformada()).toBe(false);
+  });
+
+  it('should organize requests, orders and deliveries by their backend stages', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+
+    expect(app.etapasSolicitacoes.map(etapa => etapa.status)).toEqual([
+      '', 'SOLICITADA', 'EM_ANALISE', 'APROVADA', 'PEDIDO_REALIZADO',
+      'REJEITADA', 'CANCELADA'
+    ]);
+    expect(app.etapasPedidos.map(etapa => etapa.status)).toEqual([
+      '', 'CRIADO', 'AGUARDANDO_RECEBIMENTO', 'RECEBIDO_PARCIAL',
+      'RECEBIDO_TOTAL', 'CANCELADO'
+    ]);
+    expect(app.etapasEntregas.map(etapa => etapa.status)).toEqual([
+      '', 'CADASTRADA', 'AGENDADA', 'EM_SEPARACAO',
+      'PRONTA_PARA_ENTREGA', 'EM_ROTA', 'ENTREGUE', 'NAO_ENTREGUE',
+      'CANCELADA'
+    ]);
+
+    app.solicitacoes = [
+      { id_solicitacao: 1, status: 'SOLICITADA', motivo: 'Material' },
+      { id_solicitacao: 2, status: 'EM_ANALISE', motivo: 'Ferramenta' }
+    ];
+    app.selecionarEtapaListagem('solicitacoes', 'EM_ANALISE');
+    expect(app.obterSolicitacoesFiltradas().map(item => item.id_solicitacao))
+      .toEqual([2]);
+
+    app.pedidos = [
+      { id_pedido_compra: 1, status: 'CRIADO' },
+      { id_pedido_compra: 2, status: 'RECEBIDO_TOTAL' }
+    ];
+    app.selecionarEtapaListagem('pedidos', 'RECEBIDO_TOTAL');
+    expect(app.obterPedidosFiltrados().map(item => item.id_pedido_compra))
+      .toEqual([2]);
+
+    app.entregas = [
+      { id_entrega: 1, status: 'EM_ROTA' },
+      { id_entrega: 2, status: 'ENTREGUE' }
+    ];
+    app.selecionarEtapaListagem('entregas', 'EM_ROTA');
+    expect(app.obterEntregasFiltradas().map(item => item.id_entrega)).toEqual([1]);
+    expect(app.contarRegistrosEtapa(app.entregas, 'ENTREGUE')).toBe(1);
+  });
+
   it('should filter and generate the receipt history CSV', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
@@ -1320,6 +1386,102 @@ describe('SistemaComponent', () => {
     expect(app.mensagemEntregas).toContain('atualizada com sucesso');
   });
 
+  it('should create a scheduled delivery and open the scheduled tab when a date is provided', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    const dataAgendada = app.formatarDataHoje();
+    const entregaCriada = {
+      id_entrega: 104,
+      id_cliente: 7,
+      id_entregador: null,
+      data_agendada: dataAgendada,
+      status: 'AGENDADA'
+    };
+    localStorage.setItem('token', 'token-criar-entrega-agendada');
+    app.novaEntrega = {
+      id_cliente: 7,
+      id_entregador: null,
+      data_agendada: dataAgendada,
+      anexo_pedido: '',
+      observacao: ''
+    };
+
+    expect(app.novaEntregaSeraAgendada()).toBe(true);
+    app.criarEntrega();
+
+    const requisicao = httpTesting.expectOne('http://127.0.0.1:8000/entregas/');
+    expect(requisicao.request.method).toBe('POST');
+    expect(requisicao.request.body).toEqual({
+      id_cliente: 7,
+      id_entregador: null,
+      data_agendada: dataAgendada,
+      anexo_pedido: null,
+      observacao: null
+    });
+    requisicao.flush(entregaCriada);
+
+    httpTesting.expectOne('http://127.0.0.1:8000/entregas/').flush([entregaCriada]);
+    httpTesting.expectOne('http://127.0.0.1:8000/clientes/').flush([]);
+    httpTesting.expectOne('http://127.0.0.1:8000/usuarios/resumo/').flush([]);
+
+    expect(app.filtroEntregas.status).toBe('AGENDADA');
+    expect(app.contarRegistrosEtapa(app.entregas, 'AGENDADA')).toBe(1);
+    expect(app.mensagemEntregas).toContain('cadastrada e agendada');
+  });
+
+  it('should create a registered delivery and open the registered tab without a date', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    const entregaCriada = {
+      id_entrega: 105,
+      id_cliente: 8,
+      id_entregador: null,
+      data_agendada: null,
+      status: 'CADASTRADA'
+    };
+    localStorage.setItem('token', 'token-criar-entrega-cadastrada');
+    app.novaEntrega = {
+      id_cliente: 8,
+      id_entregador: null,
+      data_agendada: '',
+      anexo_pedido: '',
+      observacao: ''
+    };
+
+    expect(app.novaEntregaSeraAgendada()).toBe(false);
+    app.criarEntrega();
+
+    const requisicao = httpTesting.expectOne('http://127.0.0.1:8000/entregas/');
+    expect(requisicao.request.body.data_agendada).toBeNull();
+    requisicao.flush(entregaCriada);
+
+    httpTesting.expectOne('http://127.0.0.1:8000/entregas/').flush([entregaCriada]);
+    httpTesting.expectOne('http://127.0.0.1:8000/clientes/').flush([]);
+    httpTesting.expectOne('http://127.0.0.1:8000/usuarios/resumo/').flush([]);
+
+    expect(app.filtroEntregas.status).toBe('CADASTRADA');
+    expect(app.contarRegistrosEtapa(app.entregas, 'CADASTRADA')).toBe(1);
+    expect(app.mensagemEntregas).toContain('cadastrada com sucesso');
+  });
+
+  it('should not submit a delivery with an invalid scheduled date', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    app.novaEntrega = {
+      id_cliente: 9,
+      id_entregador: null,
+      data_agendada: '2099-02-30',
+      anexo_pedido: '',
+      observacao: ''
+    };
+
+    expect(app.novaEntregaSeraAgendada()).toBe(false);
+    app.criarEntrega();
+
+    httpTesting.expectNone('http://127.0.0.1:8000/entregas/');
+    expect(app.erroNovaEntrega).toContain('data de agendamento');
+  });
+
   it('should cancel a delivery with a required reason', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
@@ -1359,24 +1521,26 @@ describe('SistemaComponent', () => {
     expect(app.podeCancelarEntrega({ ...entrega, status: 'EM_ROTA' })).toBe(false);
   });
 
-  it('should schedule a delivery with the selected date', () => {
+  it('should schedule a registered delivery without requiring a change to its prefilled date', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
     const entrega = {
-      id_entrega: 22,
+      id_entrega: 101,
+      id_entregador: 8,
       status: 'CADASTRADA',
-      data_agendada: null
+      data_agendada: app.formatarDataHoje()
     };
-    const dataAgendada = app.formatarDataHoje();
+    const dataAgendada = entrega.data_agendada;
     localStorage.setItem('token', 'token-agendamento');
     app.perfilUsuario = 'FUNCIONARIO';
     app.datasAgendamentoSelecionadas[entrega.id_entrega] = dataAgendada;
 
     expect(app.podeAlterarAgendamentoEntrega(entrega)).toBe(true);
+    expect(app.podeConfirmarAgendamentoEntrega(entrega)).toBe(true);
     app.salvarAgendamentoEntrega(entrega);
 
     const requisicao = httpTesting.expectOne(
-      'http://127.0.0.1:8000/entregas/22/agendamento'
+      'http://127.0.0.1:8000/entregas/101/agendamento'
     );
     expect(requisicao.request.method).toBe('PATCH');
     expect(requisicao.request.body).toEqual({ data_agendada: dataAgendada });
@@ -1394,8 +1558,43 @@ describe('SistemaComponent', () => {
 
     expect(app.mensagemEntregas).toContain('agendada');
     expect(app.entregaEmAtualizacao).toBeNull();
-    expect(app.podeAlterarAgendamentoEntrega({ ...entrega, status: 'EM_ROTA' }))
-      .toBe(false);
+  });
+
+  it('should reject an invalid delivery scheduling date', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    const entrega = {
+      id_entrega: 102,
+      status: 'CADASTRADA',
+      data_agendada: '2099-02-30'
+    };
+    app.perfilUsuario = 'FUNCIONARIO';
+    app.datasAgendamentoSelecionadas[entrega.id_entrega] = entrega.data_agendada;
+
+    expect(app.podeConfirmarAgendamentoEntrega(entrega)).toBe(false);
+    app.salvarAgendamentoEntrega(entrega);
+
+    httpTesting.expectNone('http://127.0.0.1:8000/entregas/102/agendamento');
+    expect(app.erroEntregas).toContain('data de agendamento');
+  });
+
+  it('should reject scheduling when the delivery status does not allow it', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    const entrega = {
+      id_entrega: 103,
+      status: 'EM_ROTA',
+      data_agendada: '2099-12-31'
+    };
+    app.perfilUsuario = 'FUNCIONARIO';
+    app.datasAgendamentoSelecionadas[entrega.id_entrega] = entrega.data_agendada;
+
+    expect(app.podeAlterarAgendamentoEntrega(entrega)).toBe(false);
+    expect(app.podeConfirmarAgendamentoEntrega(entrega)).toBe(false);
+    app.salvarAgendamentoEntrega(entrega);
+
+    httpTesting.expectNone('http://127.0.0.1:8000/entregas/103/agendamento');
+    expect(app.erroEntregas).toContain('nesta etapa');
   });
 
   it('should record a failed delivery attempt with a reason', () => {
@@ -1587,6 +1786,24 @@ describe('SistemaComponent', () => {
     expect((produto.querySelector('#unidade-produto') as HTMLInputElement).maxLength).toBe(20);
   });
 
+  it('should not render unidentified buttons on registration listings', () => {
+    for (const tela of ['clientes', 'fornecedores', 'produtos', 'usuarios']) {
+      const fixture = TestBed.createComponent(App);
+      fixture.componentInstance.logado = true;
+      fixture.componentInstance.telaAtual = tela as any;
+      fixture.detectChanges();
+
+      const botoes = Array.from(
+        (fixture.nativeElement as HTMLElement).querySelectorAll('button')
+      );
+      expect(
+        botoes.every(botao => Boolean(
+          botao.textContent?.trim() || botao.getAttribute('aria-label')
+        ))
+      ).toBe(true);
+    }
+  });
+
   it('should validate CPF, CNPJ and ISO dates', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
@@ -1599,11 +1816,274 @@ describe('SistemaComponent', () => {
     expect(app.dataIsoValida('2026-02-30')).toBe(false);
   });
 
+  it('should block receipt selection when an order has no pending items', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+
+    app.pedidos = [{
+      id_pedido_compra: 41,
+      status: 'AGUARDANDO_RECEBIMENTO',
+      itens: [{ saldo_pendente: 0 }]
+    }];
+
+    expect(app.pedidoTemItensDisponiveisRecebimento(app.pedidos[0])).toBe(false);
+    app.selecionarPedidoParaRecebimento(41);
+    expect(app.pedidoRecebimentoSelecionado).toBeNull();
+    expect(app.avisoItensRecebimento).toContain('não possui itens');
+  });
+
+  it('should clear compact registration filters', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+
+    app.filtroClientes = { busca: 'Maria', status: 'ATIVO', ordem: 'recentes' };
+    expect(app.temFiltrosCadastro('clientes')).toBe(true);
+
+    app.limparFiltrosCadastro('clientes');
+    expect(app.filtroClientes).toEqual({ busca: '', status: '', ordem: 'az' });
+    expect(app.temFiltrosCadastro('clientes')).toBe(false);
+  });
+
+  it('should calculate proportional report bars from the largest status', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    const grupo = { por_status: { ABERTO: 8, CONCLUIDO: 4 } };
+
+    expect(app.obterPercentualStatusRelatorio(grupo, 8)).toBe(100);
+    expect(app.obterPercentualStatusRelatorio(grupo, 4)).toBe(50);
+  });
+
   it('should build API URLs from the active environment', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
 
     expect(app.urlApi('/clientes/')).toBe('http://127.0.0.1:8000/clientes/');
     expect(app.urlApi('pedidos/')).toBe('http://127.0.0.1:8000/pedidos/');
+  });
+
+  it('should keep the compact visualization preference between navigations', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    app.idUsuarioAtual = 7;
+
+    app.alternarModoCompacto('entregas');
+    expect(app.modoCompacto.entregas).toBe(true);
+    expect(JSON.parse(sessionStorage.getItem('fcl-modo-compacto:7') || '{}').entregas)
+      .toBe(true);
+
+    app.modoCompacto.entregas = false;
+    app.restaurarPreferenciaVisualizacao();
+    expect(app.modoCompacto.entregas).toBe(true);
+  });
+
+  it('should open only one auxiliary delivery form and preserve its value', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    const entrega = {
+      id_entrega: 71,
+      id_entregador: 8,
+      data_agendada: '2099-10-10'
+    };
+
+    app.alternarFormularioAuxiliarEntrega(entrega, 'agendamento');
+    expect(app.formularioAuxiliarEntregaAberto(71, 'agendamento')).toBe(true);
+    expect(app.datasAgendamentoSelecionadas[71]).toBe('2099-10-10');
+
+    app.datasAgendamentoSelecionadas[71] = '2099-10-11';
+    app.alternarFormularioAuxiliarEntrega(entrega, 'entregador');
+    expect(app.formularioAuxiliarEntregaAberto(71, 'agendamento')).toBe(false);
+    expect(app.formularioAuxiliarEntregaAberto(71, 'entregador')).toBe(true);
+    expect(app.datasAgendamentoSelecionadas[71]).toBe('2099-10-11');
+
+    app.fecharFormularioAuxiliarEntrega();
+    expect(app.formularioAuxiliarEntrega).toBeNull();
+  });
+
+  it('should calculate and apply operational delivery indicators', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    const hoje = app.formatarDataHoje();
+    const amanha = app.obterDataAmanha();
+    const ontem = app.adicionarDiasDataIso(hoje, -1);
+    app.entregas = [
+      { id_entrega: 1, status: 'AGENDADA', data_agendada: ontem },
+      { id_entrega: 2, status: 'AGENDADA', data_agendada: hoje },
+      { id_entrega: 3, status: 'AGENDADA', data_agendada: amanha },
+      { id_entrega: 4, status: 'EM_ROTA', data_agendada: hoje },
+      { id_entrega: 5, status: 'NAO_ENTREGUE', data_agendada: ontem },
+      { id_entrega: 6, status: 'ENTREGUE', data_agendada: ontem },
+      { id_entrega: 7, status: 'CANCELADA', data_agendada: ontem }
+    ];
+
+    expect(app.contarIndicadorEntrega('ATRASADA')).toBe(2);
+    expect(app.contarIndicadorEntrega('HOJE')).toBe(2);
+    expect(app.contarIndicadorEntrega('AMANHA')).toBe(1);
+    expect(app.contarIndicadorEntrega('EM_ROTA')).toBe(1);
+
+    app.filtroEntregas.busca = 'cliente';
+    app.aplicarIndicadorEntrega('AMANHA');
+    expect(app.filtroEntregas.data_agendada).toBe(amanha);
+    expect(app.filtroEntregas.busca).toBe('cliente');
+  });
+
+  it('should organize filtered deliveries in a weekly agenda', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    app.inicioSemanaAgenda = '2026-09-21';
+    app.dataAgendaSelecionada = '2026-09-23';
+    app.entregas = [
+      { id_entrega: 1, status: 'AGENDADA', data_agendada: '2026-09-23', id_cliente: 1 },
+      { id_entrega: 2, status: 'ENTREGUE', data_agendada: '2026-09-23', id_cliente: 1 },
+      { id_entrega: 3, status: 'AGENDADA', data_agendada: '2026-09-24', id_cliente: 1 }
+    ];
+
+    expect(app.obterDiasSemanaAgenda()).toHaveLength(7);
+    expect(app.obterEntregasAgendaDia('2026-09-23')).toHaveLength(2);
+
+    app.filtroEntregas.status = 'AGENDADA';
+    expect(app.obterEntregasAgendaDia('2026-09-23').map(item => item.id_entrega))
+      .toEqual([1]);
+
+    app.alterarSemanaAgenda(1);
+    expect(app.inicioSemanaAgenda).toBe('2026-09-28');
+  });
+
+  it('should lazily load delivery history when opening the details panel', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    const entrega = { id_entrega: 72, status: 'AGENDADA' };
+    localStorage.setItem('token', 'token-painel');
+    app.filtroEntregas.busca = 'cliente atual';
+    app.paginacao.entregas.pagina = 2;
+
+    app.abrirPainelDetalhes('entrega', entrega);
+    const requisicao = httpTesting.expectOne(
+      'http://127.0.0.1:8000/entregas/72/historico'
+    );
+    expect(requisicao.request.headers.get('Authorization')).toBe('Bearer token-painel');
+    requisicao.flush([]);
+
+    expect(app.painelDetalhes?.registro).toBe(entrega);
+    app.fecharPainelDetalhes();
+    expect(app.painelDetalhes).toBeNull();
+    expect(app.filtroEntregas.busca).toBe('cliente atual');
+    expect(app.paginacao.entregas.pagina).toBe(2);
+  });
+
+  it('should preview an authenticated internal image only when requested', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    const criarUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:preview');
+    const revogarUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    localStorage.setItem('token', 'token-anexo');
+
+    expect(app.podePreVisualizarAnexo('/arquivos/entregas/notinha.jpg')).toBe(true);
+    expect(app.podePreVisualizarAnexo('/arquivos/entregas/pedido.pdf')).toBe(false);
+    app.visualizarArquivoEntrega('/arquivos/entregas/notinha.jpg', 73);
+
+    const requisicao = httpTesting.expectOne(
+      'http://127.0.0.1:8000/arquivos/entregas/notinha.jpg'
+    );
+    expect(requisicao.request.headers.get('Authorization')).toBe('Bearer token-anexo');
+    requisicao.flush(new Blob(['imagem'], { type: 'image/jpeg' }));
+
+    expect(criarUrl).toHaveBeenCalledTimes(1);
+    expect(app.anexoPreVisualizacaoUrl).toBe('blob:preview');
+    app.fecharPreVisualizacao();
+    expect(revogarUrl).toHaveBeenCalledWith('blob:preview');
+    expect(app.anexoPreVisualizacaoUrl).toBeNull();
+  });
+
+  it('should preserve list state per authenticated user', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    app.idUsuarioAtual = 41;
+    app.telaAtual = 'entregas';
+    app.filtroEntregas.busca = 'cliente 77';
+    app.filtroEntregas.status = 'AGENDADA';
+    app.paginacao.entregas.pagina = 3;
+    app.salvarEstadoNavegacao();
+
+    app.idUsuarioAtual = 42;
+    app.filtroEntregas.busca = '';
+    app.restaurarEstadoNavegacao();
+    expect(app.filtroEntregas.busca).toBe('');
+
+    app.idUsuarioAtual = 41;
+    app.restaurarEstadoNavegacao();
+    expect(app.telaAtual).toBe('entregas');
+    expect(app.filtroEntregas.busca).toBe('cliente 77');
+    expect(app.filtroEntregas.status).toBe('AGENDADA');
+    expect(app.paginacao.entregas.pagina).toBe(3);
+  });
+
+  it('should save and recover a delivery draft without its attachment', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    app.idUsuarioAtual = 12;
+    app.novaEntrega = {
+      id_cliente: 5,
+      id_entregador: 8,
+      data_agendada: '2099-10-10',
+      anexo_pedido: 'https://privado.exemplo/anexo.pdf',
+      observacao: 'Levar na portaria'
+    };
+    app.salvarRascunhoFormulario('entrega');
+    app.novaEntrega = {
+      id_cliente: null,
+      id_entregador: null,
+      data_agendada: '',
+      anexo_pedido: '',
+      observacao: ''
+    };
+    app.verificarRascunho('entrega');
+    app.recuperarRascunho();
+
+    expect(app.novaEntrega.id_cliente).toBe(5);
+    expect(app.novaEntrega.data_agendada).toBe('2099-10-10');
+    expect(app.novaEntrega.observacao).toBe('Levar na portaria');
+    expect(app.novaEntrega.anexo_pedido).toBe('');
+  });
+
+  it('should organize the assigned delivery routine into operational tabs', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    const hoje = app.formatarDataHoje();
+    const amanha = app.adicionarDiasDataIso(hoje, 1);
+    app.entregas = [
+      { id_entrega: 1, data_agendada: hoje, status: 'AGENDADA' },
+      { id_entrega: 2, data_agendada: amanha, status: 'AGENDADA' },
+      { id_entrega: 3, data_agendada: hoje, status: 'EM_ROTA' },
+      { id_entrega: 4, data_agendada: hoje, status: 'ENTREGUE' }
+    ];
+
+    expect(app.contarAbaMinhasEntregas('hoje')).toBe(2);
+    expect(app.contarAbaMinhasEntregas('proximas')).toBe(1);
+    expect(app.contarAbaMinhasEntregas('andamento')).toBe(1);
+    expect(app.contarAbaMinhasEntregas('concluidas')).toBe(1);
+  });
+
+  it('should debounce the global search and open only authorized results', async () => {
+    vi.useFakeTimers();
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    (app as any).configurarBuscaGlobal();
+
+    app.atualizarBuscaGlobal('entrega 20');
+    await vi.advanceTimersByTimeAsync(301);
+    const requisicao = httpTesting.expectOne(req =>
+      req.url === 'http://127.0.0.1:8000/busca-global' &&
+      req.params.get('q') === 'entrega 20'
+    );
+    expect(requisicao.request.method).toBe('GET');
+    requisicao.flush({
+      grupos: [{
+        tipo: 'entrega',
+        rotulo: 'Entregas',
+        resultados: [{ id: 20, titulo: 'Entrega #20', subtitulo: 'Cliente', status: 'AGENDADA' }]
+      }]
+    });
+    expect(app.gruposBuscaGlobal[0].resultados[0].id).toBe(20);
+    vi.useRealTimers();
   });
 });

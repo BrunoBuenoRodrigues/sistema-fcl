@@ -117,7 +117,9 @@ Quando uma tentativa em rota não puder ser concluída, o entregador responsáve
 
 ## Backup e restauração
 
-O serviço `backup` cria uma cópia assim que inicia e repete a operação a cada 24 horas. O intervalo e a retenção podem ser alterados no `.env` por meio de `BACKUP_INTERVALO_HORAS` e `BACKUP_RETENCAO_DIAS`.
+O serviço `backup` tenta criar uma cópia ao iniciar e repete a operação a cada 24 horas. Se uma tentativa falhar, a versão atual do script-fonte tenta novamente após cinco minutos. O serviço já em execução precisa ser recriado em uma janela de manutenção para receber essa alteração. Cópias antigas não são apagadas automaticamente.
+
+No Windows, os containers de backup usam `%LOCALAPPDATA%\SistemaFCL\Backups\Automaticos` por padrão, fora do repositório e do OneDrive. Backups manuais de restauração ficam no diretório pai e não são montados nos containers.
 
 Cada pasta dentro de `backups` contém:
 
@@ -125,17 +127,20 @@ Cada pasta dentro de `backups` contém:
 - `anexos.tar.gz`: anexos e comprovantes enviados ao sistema.
 - `checksums.sha256`: verificação de integridade dos dois arquivos.
 
-Para criar uma cópia imediatamente:
+Para criar uma cópia manual imediatamente fora do repositório, em `%LOCALAPPDATA%\SistemaFCL\Backups`:
 
 ```powershell
 .\scripts\backup-agora.ps1
 ```
 
-Para restaurar uma cópia, informe o nome da pasta. A confirmação explícita é obrigatória e um backup de segurança é criado antes da substituição:
+Para verificar a integridade e provar a restauração em ambiente temporário isolado:
 
 ```powershell
-.\scripts\restaurar-backup.ps1 -Backup 20260913T120000Z -Confirmar
+.\scripts\verificar-backup.ps1 -Backup "$env:LOCALAPPDATA\SistemaFCL\Backups\<UTC>"
+.\scripts\testar-restauracao-isolada.ps1 -Backup "$env:LOCALAPPDATA\SistemaFCL\Backups\<UTC>"
 ```
+
+O script `restaurar-backup.ps1` substitui o banco e os anexos configurados no Compose e é somente para recuperação real planejada; nunca o use para teste. Consulte [BACKUP-RESTORE.md](BACKUP-RESTORE.md) para limites, procedimentos e política de retenção.
 
 ## Monitoramento e operação
 

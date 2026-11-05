@@ -17,6 +17,7 @@ from app.routes.relatorios import router as relatorios_router
 from app.routes.arquivos import DIRETORIO_ANEXOS, router as arquivos_router
 from app.routes.auditoria import router as auditoria_router
 from app.routes.dashboard import router as dashboard_router
+from app.routes.busca import router as busca_router
 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
@@ -94,6 +95,7 @@ app.include_router(relatorios_router)
 app.include_router(arquivos_router)
 app.include_router(auditoria_router)
 app.include_router(dashboard_router)
+app.include_router(busca_router)
 
 @app.get("/")
 def inicio():

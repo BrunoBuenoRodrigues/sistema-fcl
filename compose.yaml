@@ -85,9 +85,10 @@ services:
       DB_USER: "${POSTGRES_USER:-fcl}"
       PGPASSWORD: "${POSTGRES_PASSWORD}"
       BACKUP_INTERVALO_HORAS: "${BACKUP_INTERVALO_HORAS:-24}"
-      BACKUP_RETENCAO_DIAS: "${BACKUP_RETENCAO_DIAS:-30}"
     volumes:
-      - ./backups:/backups
+      - type: bind
+        source: ${BACKUP_HOST_DIR:-${LOCALAPPDATA:-./backups}/SistemaFCL/Backups/Automaticos}
+        target: /backups
       - uploads_data:/dados/uploads
     depends_on:
       backend:
@@ -102,7 +103,10 @@ services:
       MONITOR_INTERVALO_MINUTOS: "${MONITOR_INTERVALO_MINUTOS:-5}"
       BACKUP_MAX_IDADE_HORAS: "${BACKUP_MAX_IDADE_HORAS:-26}"
     volumes:
-      - ./backups:/backups:ro
+      - type: bind
+        source: ${BACKUP_HOST_DIR:-${LOCALAPPDATA:-./backups}/SistemaFCL/Backups/Automaticos}
+        target: /backups
+        read_only: true
     depends_on:
       frontend:
         condition: service_healthy

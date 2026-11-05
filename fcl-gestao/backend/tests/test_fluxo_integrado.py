@@ -17,6 +17,8 @@ from app.limitador_login import LimitadorLogin
 from app.routes import arquivos as arquivos_route
 from app.routes import auth as auth_route
 from app.models.historico import Historico
+from app.models.cliente import Cliente
+from app.models.entrega import Entrega
 from app.models.notificacao import Notificacao
 from app.models.fornecedor import Fornecedor
 from app.models.pedido_fornecedor import PedidoCompra
@@ -331,6 +333,131 @@ class TestFluxoIntegrado(unittest.TestCase):
                 },
             ),
             201,
+        )
+
+    def test_criacao_entrega_define_status_inicial_e_valida_data(self):
+        funcionario = self.autenticar("funcionario_teste")
+        cliente = self.validar_status(
+            self.client.post(
+                "/clientes/",
+                headers=funcionario,
+                json={
+                    "nome": "Cliente Fluxo Inicial Entrega",
+                    "endereco": "Rua do Agendamento",
+                    "numero": "10",
+                    "bairro": "Centro",
+                    "cidade": "São Paulo",
+                    "uf": "SP",
+                },
+            ),
+            201,
+        )
+        id_cliente = cliente["id_cliente"]
+        ids_entregas = []
+
+        def limpar_dados_temporarios():
+            db = self.session_factory()
+            try:
+                if ids_entregas:
+                    db.query(Historico).filter(
+                        Historico.tipo_registro == "ENTREGA",
+                        Historico.id_registro.in_(ids_entregas),
+                    ).delete(synchronize_session=False)
+                    db.query(Entrega).filter(
+                        Entrega.id_entrega.in_(ids_entregas),
+                    ).delete(synchronize_session=False)
+                db.query(Historico).filter(
+                    Historico.tipo_registro == "CLIENTE",
+                    Historico.id_registro == id_cliente,
+                ).delete(synchronize_session=False)
+                db.query(Cliente).filter(
+                    Cliente.id_cliente == id_cliente,
+                ).delete(synchronize_session=False)
+                db.commit()
+            finally:
+                db.close()
+
+        self.addCleanup(limpar_dados_temporarios)
+        data_futura = date.today() + timedelta(days=1)
+
+        sem_data = self.validar_status(
+            self.client.post(
+                "/entregas/",
+                headers=funcionario,
+                json={"id_cliente": id_cliente},
+            ),
+            201,
+        )
+        ids_entregas.append(sem_data["id_entrega"])
+        self.assertEqual(sem_data["status"], "CADASTRADA")
+        self.assertIsNone(sem_data["data_agendada"])
+
+        com_data = self.validar_status(
+            self.client.post(
+                "/entregas/",
+                headers=funcionario,
+                json={
+                    "id_cliente": id_cliente,
+                    "data_agendada": data_futura.isoformat(),
+                },
+            ),
+            201,
+        )
+        ids_entregas.append(com_data["id_entrega"])
+        self.assertEqual(com_data["status"], "AGENDADA")
+        self.assertEqual(com_data["data_agendada"], data_futura.isoformat())
+
+        data_inexistente = self.client.post(
+            "/entregas/",
+            headers=funcionario,
+            json={
+                "id_cliente": id_cliente,
+                "data_agendada": "2099-02-30",
+            },
+        )
+        self.assertEqual(data_inexistente.status_code, 422)
+
+        data_passada = self.client.post(
+            "/entregas/",
+            headers=funcionario,
+            json={
+                "id_cliente": id_cliente,
+                "data_agendada": (date.today() - timedelta(days=1)).isoformat(),
+            },
+        )
+        self.assertEqual(data_passada.status_code, 400)
+
+        agendada_posteriormente = self.validar_status(
+            self.client.patch(
+                f"/entregas/{sem_data['id_entrega']}/agendamento",
+                headers=funcionario,
+                json={"data_agendada": data_futura.isoformat()},
+            ),
+            200,
+        )
+        self.assertEqual(agendada_posteriormente["status"], "AGENDADA")
+
+        historico_com_data = self.validar_status(
+            self.client.get(
+                f"/entregas/{com_data['id_entrega']}/historico",
+                headers=funcionario,
+            ),
+            200,
+        )
+        historico_sem_data = self.validar_status(
+            self.client.get(
+                f"/entregas/{sem_data['id_entrega']}/historico",
+                headers=funcionario,
+            ),
+            200,
+        )
+        self.assertEqual(
+            [evento["acao"] for evento in historico_com_data],
+            ["CADASTRO", "AGENDAMENTO"],
+        )
+        self.assertEqual(
+            [evento["acao"] for evento in historico_sem_data],
+            ["CADASTRO", "AGENDAMENTO"],
         )
 
     def test_fluxo_completo_de_compras_recebimento_e_entrega(self):
@@ -706,6 +833,7 @@ class TestFluxoIntegrado(unittest.TestCase):
             201,
         )
         id_entrega = entrega["id_entrega"]
+        self.assertEqual(entrega["status"], "AGENDADA")
 
         outro_entregador = self.autenticar("entregador_dois_teste")
         download_anexo_responsavel = self.client.get(
@@ -1065,12 +1193,13 @@ class TestFluxoIntegrado(unittest.TestCase):
             ),
             200,
         )
-        self.assertEqual(len(historico), 13)
+        self.assertEqual(len(historico), 14)
         self.assertEqual(historico[-1]["acao"], "ANEXO_COMPROVANTE")
         self.assertEqual(historico[1]["acao"], "AGENDAMENTO")
         self.assertEqual(historico[2]["acao"], "REAGENDAMENTO")
-        self.assertEqual(historico[6]["acao"], "NAO_ENTREGA")
-        self.assertEqual(historico[7]["acao"], "REAGENDAMENTO")
+        self.assertEqual(historico[3]["acao"], "REAGENDAMENTO")
+        self.assertEqual(historico[7]["acao"], "NAO_ENTREGA")
+        self.assertEqual(historico[8]["acao"], "REAGENDAMENTO")
 
         notificacoes_funcionario = self.validar_status(
             self.client.get("/notificacoes/", headers=funcionario),
@@ -2363,6 +2492,123 @@ class TestFluxoIntegrado(unittest.TestCase):
                 Historico.acao == "ALTERACAO_SENHA",
             ).first()
             self.assertIsNotNone(historico)
+        finally:
+            db.close()
+
+    def test_busca_global_e_resumo_respeitam_o_entregador_atual(self):
+        db = self.session_factory()
+        try:
+            entregador = db.query(Usuario).filter(
+                Usuario.login == "entregador_teste"
+            ).one()
+            outro_entregador = db.query(Usuario).filter(
+                Usuario.login == "entregador_dois_teste"
+            ).one()
+            administrador = db.query(Usuario).filter(
+                Usuario.login == "admin_teste"
+            ).one()
+            cliente_alfa = Cliente(
+                nome="Rota Privada Alfa",
+                endereco="Rua Alfa",
+                numero="10",
+                bairro="Centro",
+                cidade="Itapeva",
+                uf="SP",
+                ativo=True,
+            )
+            cliente_beta = Cliente(
+                nome="Rota Privada Beta",
+                endereco="Rua Beta",
+                numero="20",
+                bairro="Centro",
+                cidade="Itapeva",
+                uf="SP",
+                ativo=True,
+            )
+            db.add_all([cliente_alfa, cliente_beta])
+            db.flush()
+            entrega_propria = Entrega(
+                id_cliente=cliente_alfa.id_cliente,
+                id_usuario_cadastro=administrador.id_usuario,
+                id_entregador=entregador.id_usuario,
+                data_cadastro=datetime.now(),
+                data_agendada=date.today(),
+                status="ENTREGUE",
+            )
+            entrega_alheia = Entrega(
+                id_cliente=cliente_beta.id_cliente,
+                id_usuario_cadastro=administrador.id_usuario,
+                id_entregador=outro_entregador.id_usuario,
+                data_cadastro=datetime.now(),
+                data_agendada=date.today(),
+                status="ENTREGUE",
+            )
+            db.add_all([entrega_propria, entrega_alheia])
+            db.flush()
+            db.add(Historico(
+                id_usuario=entregador.id_usuario,
+                tipo_registro="ENTREGA",
+                id_registro=entrega_propria.id_entrega,
+                acao="ALTERACAO_STATUS",
+                descricao="Status alterado de EM_ROTA para ENTREGUE.",
+                data_hora=datetime.now(),
+            ))
+            ids = (entrega_propria.id_entrega, entrega_alheia.id_entrega)
+            ids_clientes = (cliente_alfa.id_cliente, cliente_beta.id_cliente)
+            db.commit()
+        finally:
+            db.close()
+
+        headers_entregador = self.autenticar("entregador_teste")
+        busca_entregador = self.client.get(
+            "/busca-global",
+            params={"q": "Rota Privada"},
+            headers=headers_entregador,
+        )
+        self.assertEqual(busca_entregador.status_code, 200, busca_entregador.text)
+        grupo_entregas = next(
+            grupo for grupo in busca_entregador.json()["grupos"]
+            if grupo["tipo"] == "entrega"
+        )
+        self.assertEqual(
+            [item["id"] for item in grupo_entregas["resultados"]],
+            [ids[0]],
+        )
+
+        resumo = self.client.get(
+            "/entregas/minhas-resumo",
+            headers=headers_entregador,
+        )
+        self.assertEqual(resumo.status_code, 200, resumo.text)
+        self.assertGreaterEqual(resumo.json()["concluidas_hoje"], 1)
+
+        busca_admin = self.client.get(
+            "/busca-global",
+            params={"q": "Rota Privada"},
+            headers=self.autenticar("admin_teste"),
+        )
+        grupo_admin = next(
+            grupo for grupo in busca_admin.json()["grupos"]
+            if grupo["tipo"] == "entrega"
+        )
+        self.assertEqual(
+            {item["id"] for item in grupo_admin["resultados"]},
+            set(ids),
+        )
+
+        db = self.session_factory()
+        try:
+            db.query(Historico).filter(
+                Historico.tipo_registro == "ENTREGA",
+                Historico.id_registro.in_(ids),
+            ).delete(synchronize_session=False)
+            db.query(Entrega).filter(
+                Entrega.id_entrega.in_(ids)
+            ).delete(synchronize_session=False)
+            db.query(Cliente).filter(
+                Cliente.id_cliente.in_(ids_clientes)
+            ).delete(synchronize_session=False)
+            db.commit()
         finally:
             db.close()
 

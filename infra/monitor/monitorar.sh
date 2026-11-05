@@ -32,9 +32,17 @@ verificar_backup() {
     )"
 
     [ -n "$backup_recente" ] || return 1
-    [ -s "$backup_recente/banco.dump" ] || return 1
-    [ -s "$backup_recente/anexos.tar.gz" ] || return 1
-    [ -s "$backup_recente/checksums.sha256" ] || return 1
+    if [ -s "$backup_recente/banco.dump" ] && [ -s "$backup_recente/anexos.tar.gz" ] && [ -s "$backup_recente/checksums.sha256" ]; then
+        arquivo_checksums="checksums.sha256"
+        arquivo_dump="banco.dump"
+        arquivo_anexos="anexos.tar.gz"
+    elif [ -s "$backup_recente/database.dump" ] && [ -s "$backup_recente/attachments.tar.gz" ] && [ -s "$backup_recente/SHA256SUMS" ]; then
+        arquivo_checksums="SHA256SUMS"
+        arquivo_dump="database.dump"
+        arquivo_anexos="attachments.tar.gz"
+    else
+        return 1
+    fi
 
     agora="$(date +%s)"
     modificado="$(stat -c %Y "$backup_recente")"
@@ -45,7 +53,9 @@ verificar_backup() {
 
     (
         cd "$backup_recente" || exit 1
-        sha256sum -c checksums.sha256 >/dev/null 2>&1
+        sha256sum -c "$arquivo_checksums" >/dev/null 2>&1 || exit 1
+        pg_restore --list "$arquivo_dump" >/dev/null 2>&1 || exit 1
+        tar -tzf "$arquivo_anexos" >/dev/null 2>&1
     )
 }
 

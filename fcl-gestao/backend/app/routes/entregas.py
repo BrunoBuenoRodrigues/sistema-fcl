@@ -3,6 +3,7 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import and_
 
 from app.database import get_db
 from app.dependencies import exigir_perfis
@@ -71,6 +72,12 @@ def criar_entrega(
             detail="Não é possível criar entrega para cliente inativo."
         )
 
+    if dados.data_agendada is not None and dados.data_agendada < date.today():
+        raise HTTPException(
+            status_code=400,
+            detail="A data agendada não pode ser anterior à data atual."
+        )
+
     if dados.id_entregador is not None:
         entregador = db.query(Usuario).filter(
             Usuario.id_usuario == dados.id_entregador
@@ -100,12 +107,6 @@ def criar_entrega(
                 detail="A data agendada é obrigatória quando há entregador definido."
             )
 
-        if dados.data_agendada < date.today():
-            raise HTTPException(
-                status_code=400,
-                detail="A data agendada não pode ser anterior à data atual."
-            )
-
         if not dados.anexo_pedido or not dados.anexo_pedido.strip():
             raise HTTPException(
                 status_code=400,
@@ -118,14 +119,13 @@ def criar_entrega(
         id_entregador=dados.id_entregador,
         data_cadastro=datetime.now(),
         data_agendada=dados.data_agendada,
-        status="CADASTRADA",
+        status="AGENDADA" if dados.data_agendada is not None else "CADASTRADA",
         anexo_pedido=dados.anexo_pedido,
         observacao=dados.observacao
     )
 
     db.add(nova_entrega)
-    db.commit()
-    db.refresh(nova_entrega)
+    db.flush()
 
     historico_cadastro = Historico(
         id_usuario=usuario_atual.id_usuario,
@@ -137,7 +137,22 @@ def criar_entrega(
     )
 
     db.add(historico_cadastro)
+
+    if dados.data_agendada is not None:
+        db.add(Historico(
+            id_usuario=usuario_atual.id_usuario,
+            tipo_registro="ENTREGA",
+            id_registro=nova_entrega.id_entrega,
+            acao="AGENDAMENTO",
+            descricao=(
+                f"Entrega agendada para {dados.data_agendada:%d/%m/%Y} "
+                "durante o cadastro."
+            ),
+            data_hora=datetime.now()
+        ))
+
     db.commit()
+    db.refresh(nova_entrega)
 
     return nova_entrega
 
@@ -164,6 +179,43 @@ def listar_entregas(
         )
 
     return consulta.order_by(Entrega.id_entrega.desc()).all()
+
+
+@router.get("/minhas-resumo")
+def obter_resumo_minhas_entregas(
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(exigir_perfis("ENTREGADOR")),
+):
+    entregas = db.query(Entrega).filter(
+        Entrega.id_entregador == usuario_atual.id_usuario
+    ).all()
+    hoje = date.today()
+    inicio_hoje = datetime.combine(hoje, datetime.min.time())
+    inicio_amanha = datetime.combine(hoje, datetime.max.time())
+    ids_concluidas_hoje = {
+        item[0]
+        for item in db.query(Historico.id_registro).filter(
+            and_(
+                Historico.tipo_registro == "ENTREGA",
+                Historico.acao == "ALTERACAO_STATUS",
+                Historico.descricao.ilike("%para ENTREGUE.%"),
+                Historico.data_hora >= inicio_hoje,
+                Historico.data_hora <= inicio_amanha,
+            )
+        ).all()
+    }
+    ids_do_entregador = {item.id_entrega for item in entregas}
+    encerrados = {"ENTREGUE", "CANCELADA"}
+
+    return {
+        "hoje": sum(
+            1 for item in entregas
+            if item.data_agendada == hoje and item.status not in encerrados
+        ),
+        "em_rota": sum(1 for item in entregas if item.status == "EM_ROTA"),
+        "pendentes": sum(1 for item in entregas if item.status not in encerrados),
+        "concluidas_hoje": len(ids_concluidas_hoje & ids_do_entregador),
+    }
 
 @router.get(
     "/{id_entrega}",

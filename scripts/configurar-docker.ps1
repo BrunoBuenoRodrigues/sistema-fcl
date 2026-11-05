@@ -4,6 +4,19 @@ param(
 
 $raizProjeto = Split-Path -Parent $PSScriptRoot
 $arquivoAmbiente = Join-Path $raizProjeto ".env"
+$diretorioBackupsAutomaticos = Join-Path $env:LOCALAPPDATA 'SistemaFCL\Backups\Automaticos'
+
+New-Item -ItemType Directory -Path $diretorioBackupsAutomaticos -Force | Out-Null
+$sidGrupoDocker = (Get-LocalGroup -Name 'docker-users').SID.Value
+$sidUsuarioAtual = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+& icacls $diretorioBackupsAutomaticos /inheritance:r /grant:r `
+    "*$($sidUsuarioAtual):(OI)(CI)F" `
+    '*S-1-5-18:(OI)(CI)F' `
+    '*S-1-5-32-544:(OI)(CI)F' `
+    "*$($sidGrupoDocker):(OI)(CI)M" /T /C | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    throw "Could not grant Docker access to the automatic backup directory."
+}
 
 if ((Test-Path -LiteralPath $arquivoAmbiente) -and -not $Sobrescrever) {
     Write-Output "O arquivo .env já existe. Nenhuma alteração foi realizada."
@@ -38,8 +51,8 @@ $linhas = @(
     "ADMIN_INICIAL_NOME=Administrador",
     "ADMIN_INICIAL_LOGIN=admin",
     "ADMIN_INICIAL_SENHA=$(Novo-Segredo 16)",
+    "BACKUP_HOST_DIR=$(if ($env:LOCALAPPDATA) { ($env:LOCALAPPDATA -replace '\\', '/') + '/SistemaFCL/Backups/Automaticos' } else { './backups/automaticos' })",
     "BACKUP_INTERVALO_HORAS=24",
-    "BACKUP_RETENCAO_DIAS=30",
     "BACKUP_MAX_IDADE_HORAS=26",
     "MONITOR_INTERVALO_MINUTOS=5",
     "LOG_MAX_SIZE=10m",

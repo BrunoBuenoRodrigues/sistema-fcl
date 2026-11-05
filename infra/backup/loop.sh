@@ -11,9 +11,10 @@ case "$intervalo_horas" in
 esac
 
 while true; do
-    if ! /scripts/backup.sh; then
+    if /scripts/backup.sh; then
+        sleep "$((intervalo_horas * 3600))"
+    else
         echo "Falha ao executar o backup automático." >&2
+        sleep 300
     fi
-
-    sleep "$((intervalo_horas * 3600))"
 done

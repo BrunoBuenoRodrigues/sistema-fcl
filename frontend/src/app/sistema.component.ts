@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { Subject, Subscription, catchError, debounceTime, distinctUntilChanged, finalize, forkJoin, of, switchMap } from 'rxjs';
 import { environment } from '../environments/environment';
 
 type ChavePaginacao =
@@ -19,6 +19,12 @@ type ChavePaginacao =
   | 'notificacoes'
   | 'auditoria';
 
+type ModuloOperacional = 'solicitacoes' | 'pedidos' | 'entregas';
+type TipoPainelDetalhes = 'solicitacao' | 'pedido' | 'entrega';
+type FormularioAuxiliarEntrega = 'agendamento' | 'entregador' | 'comprovante';
+type TipoRascunho = 'solicitacao' | 'pedido' | 'entrega';
+type AbaMinhasEntregas = 'hoje' | 'proximas' | 'andamento' | 'concluidas';
+
 @Component({
   selector: 'app-sistema',
   imports: [FormsModule, CommonModule],
@@ -32,6 +38,13 @@ export class SistemaComponent implements OnInit, OnDestroy {
   private atualizacaoNotificacoesId: ReturnType<typeof setInterval> | null = null;
   private atualizandoNotificacoesEmSegundoPlano = false;
   private notificacoesInicializadas = false;
+  private readonly buscaGlobal$ = new Subject<string>();
+  private buscaGlobalSubscription: Subscription | null = null;
+  private restaurandoNavegacao = false;
+  private readonly versaoEstadoNavegacao = 1;
+  private readonly versaoRascunho = 1;
+  private readonly validadeRascunhoMs = 24 * 60 * 60 * 1000;
+  private resultadoBuscaPendente: { tipo: string; id: number } | null = null;
   readonly etapasEntregaVisual = [
     { status: 'CADASTRADA', rotulo: 'Cadastrada' },
     { status: 'AGENDADA', rotulo: 'Agendada' },
@@ -39,6 +52,34 @@ export class SistemaComponent implements OnInit, OnDestroy {
     { status: 'PRONTA_PARA_ENTREGA', rotulo: 'Pronta' },
     { status: 'EM_ROTA', rotulo: 'Em rota' },
     { status: 'ENTREGUE', rotulo: 'Entregue' }
+  ];
+  readonly etapasSolicitacoes = [
+    { status: '', rotulo: 'Todas' },
+    { status: 'SOLICITADA', rotulo: 'Solicitadas' },
+    { status: 'EM_ANALISE', rotulo: 'Em análise' },
+    { status: 'APROVADA', rotulo: 'Aprovadas' },
+    { status: 'PEDIDO_REALIZADO', rotulo: 'Pedido realizado' },
+    { status: 'REJEITADA', rotulo: 'Rejeitadas' },
+    { status: 'CANCELADA', rotulo: 'Canceladas' }
+  ];
+  readonly etapasPedidos = [
+    { status: '', rotulo: 'Todos' },
+    { status: 'CRIADO', rotulo: 'Criados' },
+    { status: 'AGUARDANDO_RECEBIMENTO', rotulo: 'Aguardando recebimento' },
+    { status: 'RECEBIDO_PARCIAL', rotulo: 'Recebidos parcialmente' },
+    { status: 'RECEBIDO_TOTAL', rotulo: 'Recebidos totalmente' },
+    { status: 'CANCELADO', rotulo: 'Cancelados' }
+  ];
+  readonly etapasEntregas = [
+    { status: '', rotulo: 'Todas' },
+    { status: 'CADASTRADA', rotulo: 'Cadastradas' },
+    { status: 'AGENDADA', rotulo: 'Agendadas' },
+    { status: 'EM_SEPARACAO', rotulo: 'Em separação' },
+    { status: 'PRONTA_PARA_ENTREGA', rotulo: 'Prontas para entrega' },
+    { status: 'EM_ROTA', rotulo: 'Em rota' },
+    { status: 'ENTREGUE', rotulo: 'Entregues' },
+    { status: 'NAO_ENTREGUE', rotulo: 'Não entregues' },
+    { status: 'CANCELADA', rotulo: 'Canceladas' }
   ];
 
   login = '';
@@ -48,6 +89,19 @@ export class SistemaComponent implements OnInit, OnDestroy {
   idUsuarioAtual: number | null = null;
   nomeUsuarioAtual = '';
   telaAtual = 'dashboard';
+  consultaBuscaGlobal = '';
+  buscaGlobalAberta = false;
+  buscandoGlobalmente = false;
+  erroBuscaGlobal = '';
+  gruposBuscaGlobal: any[] = [];
+  abaMinhasEntregas: AbaMinhasEntregas = 'hoje';
+  resumoMinhasEntregas = {
+    hoje: 0,
+    em_rota: 0,
+    pendentes: 0,
+    concluidas_hoje: 0
+  };
+  rascunhoDisponivel: { tipo: TipoRascunho; dados: any } | null = null;
   salvandoMinhaSenha = false;
   erroMinhaConta = '';
   mensagemMinhaConta = '';
@@ -131,6 +185,8 @@ export class SistemaComponent implements OnInit, OnDestroy {
   recebimentoEmAtualizacao: number | null = null;
   motivoEstornoRecebimento = '';
   exportandoHistoricoRecebimentos = false;
+  abaRecebimentos: 'pendentes' | 'historico' = 'pendentes';
+  recebimentoHistoricoExpandido: number | null = null;
   novoRecebimento = {
     numero_nota_fiscal: '',
     observacao: ''
@@ -185,6 +241,23 @@ export class SistemaComponent implements OnInit, OnDestroy {
   };
   entregadoresSelecionados: Record<number, number | null> = {};
   datasAgendamentoSelecionadas: Record<number, string> = {};
+  visualizacaoEntregas: 'estagios' | 'agenda' = 'estagios';
+  inicioSemanaAgenda = this.obterInicioSemanaAgenda(this.formatarDataHoje());
+  dataAgendaSelecionada = this.formatarDataHoje();
+  formularioAuxiliarEntrega: {
+    idEntrega: number;
+    tipo: FormularioAuxiliarEntrega;
+  } | null = null;
+  painelDetalhes: { tipo: TipoPainelDetalhes; registro: any } | null = null;
+  modoCompacto: Record<ModuloOperacional, boolean> = {
+    solicitacoes: false,
+    pedidos: false,
+    entregas: false
+  };
+  anexoPreVisualizacaoUrl: string | null = null;
+  anexoPreVisualizacaoNome = '';
+  anexoPreVisualizacaoCarregando: number | null = null;
+  zoomPreVisualizacao = 1;
   novaEntrega = {
     id_cliente: null as number | null,
     id_entregador: null as number | null,
@@ -336,6 +409,15 @@ private readonly tratarSessaoExpirada = () => {
   this.encerrarSessao('Sua sessão expirou. Faça login novamente.');
 };
 
+private readonly tratarNavegacaoHistorico = () => {
+  if (!this.logado) return;
+  const tela = new URLSearchParams(window.location.search).get('tela') || this.telaInicialPerfil();
+  if (this.telaPermitida(tela)) this.abrirTela(tela, false);
+};
+
+private readonly salvarAntesDeSair = () => this.salvarEstadoNavegacao();
+private posicoesRolagem: Record<string, number> = {};
+
 urlApi(caminho: string): string {
   const rota = caminho.startsWith('/') ? caminho : `/${caminho}`;
   return `${this.apiUrl}${rota}`;
@@ -350,6 +432,9 @@ urlApi(caminho: string): string {
 ngOnInit() {
   document.title = this.tituloBase;
   window.addEventListener('sessao-expirada', this.tratarSessaoExpirada);
+  window.addEventListener('popstate', this.tratarNavegacaoHistorico);
+  window.addEventListener('beforeunload', this.salvarAntesDeSair);
+  this.configurarBuscaGlobal();
 
   const token = localStorage.getItem('token');
 
@@ -362,8 +447,288 @@ ngOnInit() {
 
 ngOnDestroy() {
   window.removeEventListener('sessao-expirada', this.tratarSessaoExpirada);
+  window.removeEventListener('popstate', this.tratarNavegacaoHistorico);
+  window.removeEventListener('beforeunload', this.salvarAntesDeSair);
+  this.buscaGlobalSubscription?.unsubscribe();
   this.pararAtualizacaoAutomaticaNotificacoes();
   document.title = this.tituloBase;
+  this.liberarUrlPreVisualizacao();
+}
+
+private chaveEstadoNavegacao(): string | null {
+  return this.idUsuarioAtual === null
+    ? null
+    : `fcl-estado-navegacao-v${this.versaoEstadoNavegacao}:${this.idUsuarioAtual}`;
+}
+
+salvarEstadoNavegacao(): void {
+  const chave = this.chaveEstadoNavegacao();
+  if (!chave || this.restaurandoNavegacao) return;
+  this.posicoesRolagem[this.telaAtual] = window.scrollY;
+  sessionStorage.setItem(chave, JSON.stringify({
+    versao: this.versaoEstadoNavegacao,
+    tela: this.telaAtual,
+    filtros: {
+      solicitacoes: this.filtroSolicitacoes,
+      pedidos: this.filtroPedidos,
+      recebimentos: this.filtroRecebimentos,
+      historicoRecebimentos: this.filtroHistoricoRecebimentos,
+      entregas: this.filtroEntregas,
+      clientes: this.filtroClientes,
+      fornecedores: this.filtroFornecedores,
+      produtos: this.filtroProdutos,
+      usuarios: this.filtroUsuarios
+    },
+    paginacao: this.paginacao,
+    abaRecebimentos: this.abaRecebimentos,
+    abaMinhasEntregas: this.abaMinhasEntregas,
+    visualizacaoEntregas: this.visualizacaoEntregas,
+    modoCompacto: this.modoCompacto,
+    inicioSemanaAgenda: this.inicioSemanaAgenda,
+    dataAgendaSelecionada: this.dataAgendaSelecionada,
+    posicoesRolagem: this.posicoesRolagem
+  }));
+}
+
+restaurarEstadoNavegacao(): void {
+  const chave = this.chaveEstadoNavegacao();
+  if (!chave) return;
+  this.restaurandoNavegacao = true;
+  try {
+    const bruto = sessionStorage.getItem(chave);
+    if (!bruto) return;
+    const estado = JSON.parse(bruto);
+    if (estado?.versao !== this.versaoEstadoNavegacao) {
+      sessionStorage.removeItem(chave);
+      return;
+    }
+    this.telaAtual = String(estado.tela || this.telaInicialPerfil());
+    this.filtroSolicitacoes = { ...this.filtroSolicitacoes, ...estado.filtros?.solicitacoes };
+    this.filtroPedidos = { ...this.filtroPedidos, ...estado.filtros?.pedidos };
+    this.filtroRecebimentos = { ...this.filtroRecebimentos, ...estado.filtros?.recebimentos };
+    this.filtroHistoricoRecebimentos = { ...this.filtroHistoricoRecebimentos, ...estado.filtros?.historicoRecebimentos };
+    this.filtroEntregas = { ...this.filtroEntregas, ...estado.filtros?.entregas };
+    this.filtroClientes = { ...this.filtroClientes, ...estado.filtros?.clientes };
+    this.filtroFornecedores = { ...this.filtroFornecedores, ...estado.filtros?.fornecedores };
+    this.filtroProdutos = { ...this.filtroProdutos, ...estado.filtros?.produtos };
+    this.filtroUsuarios = { ...this.filtroUsuarios, ...estado.filtros?.usuarios };
+    for (const item of Object.keys(this.paginacao) as ChavePaginacao[]) {
+      const paginaSalva = estado.paginacao?.[item];
+      if (paginaSalva) {
+        this.paginacao[item] = {
+          pagina: Math.max(1, Number(paginaSalva.pagina) || 1),
+          porPagina: this.opcoesItensPorPagina.includes(Number(paginaSalva.porPagina))
+            ? Number(paginaSalva.porPagina)
+            : this.paginacao[item].porPagina
+        };
+      }
+    }
+    if (['pendentes', 'historico'].includes(estado.abaRecebimentos)) this.abaRecebimentos = estado.abaRecebimentos;
+    if (['hoje', 'proximas', 'andamento', 'concluidas'].includes(estado.abaMinhasEntregas)) this.abaMinhasEntregas = estado.abaMinhasEntregas;
+    if (['estagios', 'agenda'].includes(estado.visualizacaoEntregas)) this.visualizacaoEntregas = estado.visualizacaoEntregas;
+    for (const modulo of ['solicitacoes', 'pedidos', 'entregas'] as ModuloOperacional[]) {
+      this.modoCompacto[modulo] = estado.modoCompacto?.[modulo] === true;
+    }
+    if (this.dataIsoValida(estado.inicioSemanaAgenda || '')) this.inicioSemanaAgenda = estado.inicioSemanaAgenda;
+    if (this.dataIsoValida(estado.dataAgendaSelecionada || '')) this.dataAgendaSelecionada = estado.dataAgendaSelecionada;
+    this.posicoesRolagem = estado.posicoesRolagem || {};
+  } catch {
+    sessionStorage.removeItem(chave);
+  } finally {
+    this.restaurandoNavegacao = false;
+  }
+}
+
+telaInicialPerfil(): string {
+  return this.perfilUsuario === 'ENTREGADOR' ? 'minhas-entregas' : 'dashboard';
+}
+
+telaPermitida(tela: string): boolean {
+  const restricoes: Record<string, boolean> = {
+    solicitacoes: this.podeAcessarSolicitacoes(),
+    'nova-solicitacao': this.podeAcessarSolicitacoes(),
+    pedidos: this.podeAcessarPedidos(),
+    'novo-pedido': this.podeAcessarPedidos(),
+    recebimentos: this.podeAcessarRecebimentos(),
+    entregas: this.perfilUsuario !== 'ENTREGADOR',
+    'nova-entrega': this.podeCadastrarEntrega(),
+    'minhas-entregas': this.perfilUsuario === 'ENTREGADOR',
+    usuarios: this.podeGerenciarUsuarios(),
+    relatorios: this.podeAcessarRelatorios(),
+    auditoria: this.podeAcessarAuditoria(),
+    fornecedores: this.podeAcessarCadastrosDeCompras(),
+    produtos: this.podeAcessarCadastrosDeCompras()
+  };
+  return restricoes[tela] ?? true;
+}
+
+private configurarBuscaGlobal(): void {
+  this.buscaGlobalSubscription = this.buscaGlobal$.pipe(
+    debounceTime(300),
+    distinctUntilChanged(),
+    switchMap(consulta => {
+      const termo = consulta.trim();
+      if (termo.length < 2) {
+        this.buscandoGlobalmente = false;
+        return of({ grupos: [] });
+      }
+      this.buscandoGlobalmente = true;
+      this.erroBuscaGlobal = '';
+      const token = localStorage.getItem('token');
+      return this.http.get<any>(this.urlApi('/busca-global'), {
+        params: new HttpParams().set('q', termo).set('limite', 5),
+        headers: { Authorization: `Bearer ${token}` }
+      }).pipe(
+        catchError(() => {
+          this.erroBuscaGlobal = 'Não foi possível realizar a busca.';
+          return of({ grupos: [] });
+        }),
+        finalize(() => { this.buscandoGlobalmente = false; })
+      );
+    })
+  ).subscribe(resposta => {
+    this.gruposBuscaGlobal = resposta.grupos || [];
+    this.cdr.detectChanges();
+  });
+}
+
+atualizarBuscaGlobal(valor: string): void {
+  this.consultaBuscaGlobal = valor;
+  this.buscaGlobalAberta = true;
+  this.buscaGlobal$.next(valor);
+}
+
+fecharBuscaGlobal(): void {
+  this.buscaGlobalAberta = false;
+  this.consultaBuscaGlobal = '';
+  this.gruposBuscaGlobal = [];
+  this.erroBuscaGlobal = '';
+}
+
+abrirResultadoBusca(resultado: any, tipo: string): void {
+  const destinos: Record<string, { tela: string; filtro: any }> = {
+    solicitacao: { tela: 'solicitacoes', filtro: this.filtroSolicitacoes },
+    pedido: { tela: 'pedidos', filtro: this.filtroPedidos },
+    entrega: { tela: this.perfilUsuario === 'ENTREGADOR' ? 'minhas-entregas' : 'entregas', filtro: this.filtroEntregas },
+    cliente: { tela: 'clientes', filtro: this.filtroClientes },
+    fornecedor: { tela: 'fornecedores', filtro: this.filtroFornecedores },
+    produto: { tela: 'produtos', filtro: this.filtroProdutos },
+    usuario: { tela: 'usuarios', filtro: this.filtroUsuarios }
+  };
+  const destino = destinos[tipo];
+  if (!destino || !this.telaPermitida(destino.tela)) return;
+  destino.filtro.busca = tipo === 'produto'
+    ? String(resultado.subtitulo || resultado.titulo)
+    : ['cliente', 'fornecedor', 'usuario'].includes(tipo)
+      ? String(resultado.titulo)
+      : String(resultado.id);
+  if ('status' in destino.filtro) destino.filtro.status = '';
+  if (tipo === 'entrega') {
+    this.resultadoBuscaPendente = { tipo, id: Number(resultado.id) };
+  }
+  this.fecharBuscaGlobal();
+  this.abrirTela(destino.tela);
+}
+
+private chaveRascunho(tipo: TipoRascunho): string | null {
+  return this.idUsuarioAtual === null
+    ? null
+    : `fcl-rascunho-v${this.versaoRascunho}:${this.idUsuarioAtual}:${tipo}`;
+}
+
+salvarRascunhoFormulario(tipo: TipoRascunho): void {
+  const chave = this.chaveRascunho(tipo);
+  if (!chave) return;
+  let dados: any;
+  let preenchido = false;
+  if (tipo === 'solicitacao') {
+    dados = JSON.parse(JSON.stringify(this.novaSolicitacao));
+    preenchido = Boolean(dados.motivo.trim() || dados.observacao.trim() ||
+      dados.prioridade !== 'MEDIA' || dados.itens.some((item: any) => item.id_produto));
+  } else if (tipo === 'pedido') {
+    dados = {
+      formulario: JSON.parse(JSON.stringify(this.novoPedido)),
+      itens: JSON.parse(JSON.stringify(this.itensNovoPedido))
+    };
+    preenchido = Boolean(dados.formulario.id_solicitacao || dados.formulario.id_fornecedor ||
+      dados.formulario.numero_pedido.trim() || dados.formulario.observacao.trim() || dados.itens.length);
+  } else {
+    dados = {
+      id_cliente: this.novaEntrega.id_cliente,
+      id_entregador: this.novaEntrega.id_entregador,
+      data_agendada: this.novaEntrega.data_agendada,
+      observacao: this.novaEntrega.observacao
+    };
+    preenchido = Boolean(dados.id_cliente || dados.id_entregador || dados.data_agendada || dados.observacao.trim());
+  }
+  if (!preenchido) {
+    localStorage.removeItem(chave);
+    return;
+  }
+  localStorage.setItem(chave, JSON.stringify({
+    versao: this.versaoRascunho,
+    expiraEm: Date.now() + this.validadeRascunhoMs,
+    dados
+  }));
+}
+
+verificarRascunho(tipo: TipoRascunho): void {
+  this.rascunhoDisponivel = null;
+  const chave = this.chaveRascunho(tipo);
+  if (!chave) return;
+  try {
+    const bruto = localStorage.getItem(chave);
+    if (!bruto) return;
+    const rascunho = JSON.parse(bruto);
+    if (rascunho?.versao !== this.versaoRascunho || Number(rascunho.expiraEm) <= Date.now()) {
+      localStorage.removeItem(chave);
+      return;
+    }
+    this.rascunhoDisponivel = { tipo, dados: rascunho.dados };
+  } catch {
+    localStorage.removeItem(chave);
+  }
+}
+
+recuperarRascunho(): void {
+  const rascunho = this.rascunhoDisponivel;
+  if (!rascunho) return;
+  const dados = rascunho.dados;
+  if (rascunho.tipo === 'solicitacao') {
+    this.novaSolicitacao = {
+      prioridade: dados.prioridade || 'MEDIA',
+      motivo: dados.motivo || '',
+      observacao: dados.observacao || '',
+      itens: Array.isArray(dados.itens) && dados.itens.length
+        ? dados.itens.map((item: any) => ({
+            id_produto: Number(item.id_produto) || null,
+            quantidade: Math.max(1, Number(item.quantidade) || 1)
+          }))
+        : [{ id_produto: null, quantidade: 1 }]
+    };
+  } else if (rascunho.tipo === 'pedido') {
+    this.novoPedido = { ...this.novoPedido, ...(dados.formulario || {}) };
+    this.itensNovoPedido = Array.isArray(dados.itens) ? dados.itens : [];
+  } else {
+    this.novaEntrega = {
+      ...this.novaEntrega,
+      id_cliente: Number(dados.id_cliente) || null,
+      id_entregador: Number(dados.id_entregador) || null,
+      data_agendada: dados.data_agendada || '',
+      anexo_pedido: '',
+      observacao: dados.observacao || ''
+    };
+    this.arquivoNovaEntrega = null;
+  }
+  this.rascunhoDisponivel = null;
+}
+
+descartarRascunho(tipo?: TipoRascunho): void {
+  const tipoEfetivo = tipo || this.rascunhoDisponivel?.tipo;
+  if (!tipoEfetivo) return;
+  const chave = this.chaveRascunho(tipoEfetivo);
+  if (chave) localStorage.removeItem(chave);
+  this.rascunhoDisponivel = null;
 }
 
 validarSessaoExistente(token: string) {
@@ -378,9 +743,14 @@ validarSessaoExistente(token: string) {
       this.nomeUsuarioAtual = usuario.nome;
       this.login = usuario.login;
       this.perfilUsuario = usuario.perfil;
-      this.telaAtual = 'dashboard';
+      this.restaurarPreferenciaVisualizacao();
+      this.restaurarEstadoNavegacao();
+      const telaUrl = new URLSearchParams(window.location.search).get('tela');
+      const telaInicial = telaUrl && this.telaPermitida(telaUrl)
+        ? telaUrl
+        : (this.telaPermitida(this.telaAtual) ? this.telaAtual : this.telaInicialPerfil());
+      this.abrirTela(telaInicial, false);
       this.carregarNotificacoes(true);
-      this.carregarResumoDashboard();
       this.iniciarAtualizacaoAutomaticaNotificacoes();
       this.cdr.detectChanges();
     },
@@ -398,6 +768,7 @@ sair() {
 }
 
 encerrarSessao(mensagem = '') {
+  this.salvarEstadoNavegacao();
   this.pararAtualizacaoAutomaticaNotificacoes();
   localStorage.removeItem('token');
   this.logado = false;
@@ -405,6 +776,7 @@ encerrarSessao(mensagem = '') {
   this.nomeUsuarioAtual = '';
   this.perfilUsuario = '';
   this.telaAtual = 'dashboard';
+  this.fecharBuscaGlobal();
   if (mensagem) {
     sessionStorage.setItem('mensagem_login', mensagem);
   } else {
@@ -972,12 +1344,14 @@ adicionarItem() {
     quantidade: 1
   });
 
+  this.salvarRascunhoFormulario('solicitacao');
   this.cdr.detectChanges();
 }
 
 removerItem(index: number) {
   if (this.novaSolicitacao.itens.length > 1) {
     this.novaSolicitacao.itens.splice(index, 1);
+    this.salvarRascunhoFormulario('solicitacao');
     this.cdr.detectChanges();
   }
 }
@@ -1389,6 +1763,209 @@ dataIsoValida(valor: string): boolean {
     data.getUTCDate() === dia;
 }
 
+restaurarPreferenciaVisualizacao(): void {
+  if (this.idUsuarioAtual === null) return;
+  const chave = `fcl-modo-compacto:${this.idUsuarioAtual}`;
+  try {
+    const preferencia = sessionStorage.getItem(chave);
+    if (!preferencia) {
+      return;
+    }
+
+    const valores = JSON.parse(preferencia);
+    for (const modulo of ['solicitacoes', 'pedidos', 'entregas'] as ModuloOperacional[]) {
+      this.modoCompacto[modulo] = valores?.[modulo] === true;
+    }
+  } catch {
+    sessionStorage.removeItem(chave);
+  }
+}
+
+alternarModoCompacto(modulo: ModuloOperacional): void {
+  this.modoCompacto[modulo] = !this.modoCompacto[modulo];
+  if (this.idUsuarioAtual !== null) {
+    sessionStorage.setItem(
+      `fcl-modo-compacto:${this.idUsuarioAtual}`,
+      JSON.stringify(this.modoCompacto)
+    );
+  }
+  this.salvarEstadoNavegacao();
+}
+
+selecionarVisualizacaoEntregas(visualizacao: 'estagios' | 'agenda'): void {
+  this.visualizacaoEntregas = visualizacao;
+  this.salvarEstadoNavegacao();
+}
+
+alternarFormularioAuxiliarEntrega(
+  entrega: any,
+  tipo: FormularioAuxiliarEntrega
+): void {
+  if (
+    this.formularioAuxiliarEntrega?.idEntrega === entrega.id_entrega &&
+    this.formularioAuxiliarEntrega?.tipo === tipo
+  ) {
+    this.fecharFormularioAuxiliarEntrega();
+    return;
+  }
+
+  this.formularioAuxiliarEntrega = { idEntrega: entrega.id_entrega, tipo };
+  this.erroEntregas = '';
+
+  if (tipo === 'agendamento' && !this.datasAgendamentoSelecionadas[entrega.id_entrega]) {
+    this.datasAgendamentoSelecionadas[entrega.id_entrega] = entrega.data_agendada || '';
+  }
+  if (tipo === 'entregador' && this.entregadoresSelecionados[entrega.id_entrega] === undefined) {
+    this.entregadoresSelecionados[entrega.id_entrega] = entrega.id_entregador;
+  }
+}
+
+formularioAuxiliarEntregaAberto(
+  idEntrega: number,
+  tipo: FormularioAuxiliarEntrega
+): boolean {
+  return this.formularioAuxiliarEntrega?.idEntrega === idEntrega &&
+    this.formularioAuxiliarEntrega?.tipo === tipo;
+}
+
+fecharFormularioAuxiliarEntrega(): void {
+  this.formularioAuxiliarEntrega = null;
+}
+
+abrirPainelDetalhes(tipo: TipoPainelDetalhes, registro: any): void {
+  this.painelDetalhes = { tipo, registro };
+
+  if (tipo === 'solicitacao') {
+    this.solicitacaoHistoricoSelecionada = registro.id_solicitacao;
+    this.historicoSolicitacao = [];
+    this.carregarHistoricoSolicitacao(registro.id_solicitacao);
+  } else if (tipo === 'pedido') {
+    this.pedidoHistoricoSelecionado = registro.id_pedido_compra;
+    this.historicoPedido = [];
+    this.carregarHistoricoPedido(registro.id_pedido_compra);
+  } else {
+    this.entregaHistoricoSelecionada = registro.id_entrega;
+    this.historicoEntrega = [];
+    this.carregarHistoricoEntrega(registro.id_entrega);
+  }
+}
+
+fecharPainelDetalhes(): void {
+  const tipo = this.painelDetalhes?.tipo;
+  this.painelDetalhes = null;
+
+  if (tipo === 'solicitacao') {
+    this.solicitacaoHistoricoSelecionada = null;
+    this.historicoSolicitacao = [];
+  } else if (tipo === 'pedido') {
+    this.pedidoHistoricoSelecionado = null;
+    this.historicoPedido = [];
+  } else if (tipo === 'entrega') {
+    this.entregaHistoricoSelecionada = null;
+    this.historicoEntrega = [];
+  }
+}
+
+obterInicioSemanaAgenda(dataIso: string): string {
+  const data = this.dataIsoValida(dataIso)
+    ? new Date(`${dataIso}T12:00:00Z`)
+    : new Date();
+  const diaSemana = data.getUTCDay();
+  const deslocamento = diaSemana === 0 ? -6 : 1 - diaSemana;
+  data.setUTCDate(data.getUTCDate() + deslocamento);
+  return data.toISOString().slice(0, 10);
+}
+
+adicionarDiasDataIso(dataIso: string, quantidade: number): string {
+  const data = new Date(`${dataIso}T12:00:00Z`);
+  data.setUTCDate(data.getUTCDate() + quantidade);
+  return data.toISOString().slice(0, 10);
+}
+
+obterDiasSemanaAgenda(): Array<{
+  data: string;
+  diaSemana: string;
+  diaMes: string;
+  total: number;
+  hoje: boolean;
+}> {
+  const rotulos = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
+  const entregasFiltradas = this.obterEntregasFiltradas();
+  return rotulos.map((diaSemana, indice) => {
+    const data = this.adicionarDiasDataIso(this.inicioSemanaAgenda, indice);
+    return {
+      data,
+      diaSemana,
+      diaMes: this.formatarDataBrasileira(data).slice(0, 5),
+      total: entregasFiltradas.filter(entrega => entrega.data_agendada === data).length,
+      hoje: data === this.formatarDataHoje()
+    };
+  });
+}
+
+obterEntregasAgendaDia(data: string): any[] {
+  return this.obterEntregasFiltradas().filter(
+    entrega => entrega.data_agendada === data
+  );
+}
+
+selecionarDataAgenda(data: string): void {
+  this.dataAgendaSelecionada = data;
+  this.salvarEstadoNavegacao();
+}
+
+alterarSemanaAgenda(quantidadeSemanas: number): void {
+  this.inicioSemanaAgenda = this.adicionarDiasDataIso(
+    this.inicioSemanaAgenda,
+    quantidadeSemanas * 7
+  );
+  this.dataAgendaSelecionada = this.inicioSemanaAgenda;
+  this.salvarEstadoNavegacao();
+}
+
+voltarSemanaAtual(): void {
+  const hoje = this.formatarDataHoje();
+  this.inicioSemanaAgenda = this.obterInicioSemanaAgenda(hoje);
+  this.dataAgendaSelecionada = hoje;
+  this.salvarEstadoNavegacao();
+}
+
+obterDataAmanha(): string {
+  return this.adicionarDiasDataIso(this.formatarDataHoje(), 1);
+}
+
+contarIndicadorEntrega(tipo: 'ATRASADA' | 'HOJE' | 'AMANHA' | 'EM_ROTA' | 'NAO_ENTREGUE'): number {
+  if (tipo === 'AMANHA') {
+    const amanha = this.obterDataAmanha();
+    return this.entregas.filter(
+      entrega => entrega.data_agendada === amanha &&
+        !['ENTREGUE', 'CANCELADA'].includes(entrega.status)
+    ).length;
+  }
+
+  if (['EM_ROTA', 'NAO_ENTREGUE'].includes(tipo)) {
+    return this.entregas.filter(entrega => entrega.status === tipo).length;
+  }
+
+  return this.contarEntregasPorPrazo(tipo);
+}
+
+aplicarIndicadorEntrega(tipo: 'ATRASADA' | 'HOJE' | 'AMANHA' | 'EM_ROTA' | 'NAO_ENTREGUE'): void {
+  this.filtroEntregas.status = '';
+  this.filtroEntregas.prazo = '';
+  this.filtroEntregas.data_agendada = '';
+
+  if (tipo === 'AMANHA') {
+    this.filtroEntregas.data_agendada = this.obterDataAmanha();
+  } else if (tipo === 'EM_ROTA' || tipo === 'NAO_ENTREGUE') {
+    this.filtroEntregas.status = tipo;
+  } else {
+    this.filtroEntregas.prazo = tipo;
+  }
+
+  this.reiniciarPagina('entregas');
+}
+
 obterSolicitacoesAprovadas(): any[] {
   return this.solicitacoes.filter(
     solicitacao => solicitacao.status === 'APROVADA' &&
@@ -1526,6 +2103,7 @@ criarPedido() {
     }
   }).subscribe({
     next: (resposta) => {
+      this.descartarRascunho('pedido');
       this.novoPedido = {
         id_solicitacao: null,
         id_fornecedor: null,
@@ -1536,6 +2114,7 @@ criarPedido() {
       this.itensNovoPedido = [];
       this.criandoPedido = false;
       this.telaAtual = 'pedidos';
+      window.history.pushState({ tela: 'pedidos' }, '', '/sistema?tela=pedidos');
       this.mensagemPedidos = `Pedido ${resposta.numero_pedido} criado com sucesso!`;
       this.carregarPedidos();
       this.cdr.detectChanges();
@@ -1711,6 +2290,104 @@ obterPedidosComStatusRecebimento(): any[] {
   );
 }
 
+selecionarAbaRecebimentos(aba: 'pendentes' | 'historico'): void {
+  this.abaRecebimentos = aba;
+  this.erroRecebimentos = '';
+  if (aba === 'pendentes') this.desistirEstornoRecebimento();
+  this.salvarEstadoNavegacao();
+}
+
+selecionarPedidoParaRecebimento(idPedidoCompra: number): void {
+  const pedido = this.obterPedidosDisponiveisRecebimento().find(
+    item => item.id_pedido_compra === idPedidoCompra
+  );
+  if (!pedido || !this.pedidoTemItensDisponiveisRecebimento(pedido)) {
+    this.avisoItensRecebimento = 'Este pedido não possui itens disponíveis para recebimento.';
+    return;
+  }
+
+  this.pedidoRecebimentoSelecionado = idPedidoCompra;
+  this.carregarItensRecebimento();
+}
+
+cancelarPreparacaoRecebimento(): void {
+  this.pedidoRecebimentoSelecionado = null;
+  this.detalhePedidoRecebimento = null;
+  this.itensNovoRecebimento = [];
+  this.avisoItensRecebimento = '';
+  this.erroRecebimentos = '';
+  this.novoRecebimento = { numero_nota_fiscal: '', observacao: '' };
+}
+
+preencherSaldoItemRecebimento(item: any): void {
+  const saldo = Number(item.saldo_pendente);
+  item.quantidade_recebida_agora = saldo > 0 ? saldo : null;
+}
+
+preencherTodosSaldosRecebimento(): void {
+  this.itensNovoRecebimento.forEach(item => this.preencherSaldoItemRecebimento(item));
+}
+
+limparQuantidadesRecebimento(): void {
+  this.itensNovoRecebimento.forEach(item => item.quantidade_recebida_agora = null);
+}
+
+obterQuantidadeItensInformadosRecebimento(): number {
+  return this.itensNovoRecebimento.filter(
+    item => Number(item.quantidade_recebida_agora) > 0
+  ).length;
+}
+
+obterTotalRecebimentoAgora(): number {
+  return this.itensNovoRecebimento.reduce(
+    (total, item) => total + Math.max(0, Number(item.quantidade_recebida_agora) || 0),
+    0
+  );
+}
+
+temQuantidadeRecebimentoInformada(): boolean {
+  return this.obterQuantidadeItensInformadosRecebimento() > 0;
+}
+
+recebimentoSeraTotal(): boolean {
+  const itensPendentes = this.itensNovoRecebimento.filter(
+    item => Number(item.saldo_pendente) > 0
+  );
+  return itensPendentes.length > 0 && itensPendentes.every(
+    item => Number(item.quantidade_recebida_agora) >= Number(item.saldo_pendente)
+  );
+}
+
+obterQuantidadeItensPendentesPedido(pedido: any): number {
+  const itens = Array.isArray(pedido?.itens) ? pedido.itens : [];
+  return itens.filter((item: any) => Number(item.saldo_pendente) > 0).length;
+}
+
+obterSaldoTotalPedido(pedido: any): number {
+  const itens = Array.isArray(pedido?.itens) ? pedido.itens : [];
+  return itens.reduce(
+    (total: number, item: any) => total + Math.max(0, Number(item.saldo_pendente) || 0),
+    0
+  );
+}
+
+pedidoTemItensDisponiveisRecebimento(pedido: any): boolean {
+  return this.obterQuantidadeItensPendentesPedido(pedido) > 0 &&
+    this.obterSaldoTotalPedido(pedido) > 0;
+}
+
+contarPedidosRecebimentoPorStatus(status: string): number {
+  return this.obterPedidosDisponiveisRecebimento().filter(
+    pedido => pedido.status === status
+  ).length;
+}
+
+alternarDetalhesRecebimento(idRecebimento: number): void {
+  this.recebimentoHistoricoExpandido = this.recebimentoHistoricoExpandido === idRecebimento
+    ? null
+    : idRecebimento;
+}
+
 carregarItensRecebimento() {
   this.erroRecebimentos = '';
   this.avisoItensRecebimento = '';
@@ -1850,6 +2527,7 @@ podeEstornarRecebimento(): boolean {
 }
 
 abrirEstornoRecebimento(idRecebimento: number) {
+  this.recebimentoHistoricoExpandido = idRecebimento;
   this.recebimentoEmEstorno = idRecebimento;
   this.motivoEstornoRecebimento = '';
   this.erroRecebimentos = '';
@@ -1930,6 +2608,14 @@ carregarEntregas() {
       }
 
       this.carregandoEntregas = false;
+      if (this.resultadoBuscaPendente?.tipo === 'entrega') {
+        const entrega = this.entregas.find(
+          item => item.id_entrega === this.resultadoBuscaPendente?.id
+        );
+        this.resultadoBuscaPendente = null;
+        if (entrega) this.abrirPainelDetalhes('entrega', entrega);
+      }
+      if (this.telaAtual === 'minhas-entregas') this.carregarResumoMinhasEntregas();
       this.cdr.detectChanges();
     },
 
@@ -2121,7 +2807,29 @@ podeAlterarAgendamentoEntrega(entrega: any): boolean {
   ].includes(entrega.status);
 }
 
+podeConfirmarAgendamentoEntrega(entrega: any): boolean {
+  const dataAgendada = this.datasAgendamentoSelecionadas[entrega.id_entrega];
+
+  if (
+    this.entregaEmAtualizacao === entrega.id_entrega ||
+    !this.podeAlterarAgendamentoEntrega(entrega) ||
+    !dataAgendada ||
+    !this.dataIsoValida(dataAgendada) ||
+    dataAgendada < this.formatarDataHoje()
+  ) {
+    return false;
+  }
+
+  return ['CADASTRADA', 'NAO_ENTREGUE'].includes(entrega.status) ||
+    dataAgendada !== entrega.data_agendada;
+}
+
 salvarAgendamentoEntrega(entrega: any) {
+  if (!this.podeAlterarAgendamentoEntrega(entrega)) {
+    this.erroEntregas = 'Não é possível alterar o agendamento nesta etapa da entrega.';
+    return;
+  }
+
   const dataAgendada = this.datasAgendamentoSelecionadas[entrega.id_entrega];
   if (!dataAgendada || !this.dataIsoValida(dataAgendada)) {
     this.erroEntregas = 'Informe uma data de agendamento válida.';
@@ -2130,6 +2838,14 @@ salvarAgendamentoEntrega(entrega: any) {
 
   if (dataAgendada < this.formatarDataHoje()) {
     this.erroEntregas = 'A data agendada não pode ser anterior à data atual.';
+    return;
+  }
+
+  if (
+    !['CADASTRADA', 'NAO_ENTREGUE'].includes(entrega.status) &&
+    dataAgendada === entrega.data_agendada
+  ) {
+    this.erroEntregas = 'Selecione uma nova data para reagendar a entrega.';
     return;
   }
 
@@ -2149,6 +2865,7 @@ salvarAgendamentoEntrega(entrega: any) {
   ).subscribe({
     next: (entregaAtualizada) => {
       this.entregaEmAtualizacao = null;
+      this.fecharFormularioAuxiliarEntrega();
       const operacao = entrega.status === 'CADASTRADA' ? 'agendada' : 'reagendada';
       this.mensagemEntregas = `Entrega #${entrega.id_entrega} ${operacao} para ${this.formatarDataBrasileira(entregaAtualizada.data_agendada)}.`;
       this.carregarEntregas();
@@ -2434,6 +3151,15 @@ criarEntrega() {
   this.registrarNovaEntrega(dados);
 }
 
+novaEntregaSeraAgendada(): boolean {
+  const dataAgendada = this.novaEntrega.data_agendada;
+  return Boolean(
+    dataAgendada &&
+    this.dataIsoValida(dataAgendada) &&
+    dataAgendada >= this.formatarDataHoje()
+  );
+}
+
 registrarNovaEntrega(dados: any) {
   const token = localStorage.getItem('token');
 
@@ -2443,6 +3169,7 @@ registrarNovaEntrega(dados: any) {
     }
   }).subscribe({
     next: (entrega) => {
+      this.descartarRascunho('entrega');
       this.criandoEntrega = false;
       this.arquivoNovaEntrega = null;
       this.novaEntrega = {
@@ -2453,7 +3180,19 @@ registrarNovaEntrega(dados: any) {
         observacao: ''
       };
       this.telaAtual = 'entregas';
-      this.mensagemEntregas = `Entrega #${entrega.id_entrega} cadastrada com sucesso!`;
+      window.history.pushState({ tela: 'entregas' }, '', '/sistema?tela=entregas');
+      this.filtroEntregas = {
+        busca: '',
+        status: entrega.status,
+        prazo: '',
+        entregador: '',
+        data_agendada: '',
+        ordem: 'recentes'
+      };
+      this.reiniciarPagina('entregas');
+      this.mensagemEntregas = entrega.status === 'AGENDADA'
+        ? `Entrega #${entrega.id_entrega} cadastrada e agendada com sucesso!`
+        : `Entrega #${entrega.id_entrega} cadastrada com sucesso!`;
       this.carregarEntregas();
       this.cdr.detectChanges();
     },
@@ -2495,7 +3234,8 @@ atribuirEntregador(entrega: any) {
   ).subscribe({
     next: () => {
       this.entregaEmAtualizacao = null;
-      this.mensagemEntregas = `Entregador atribuído à entrega #${entrega.id_entrega}.`;
+      this.fecharFormularioAuxiliarEntrega();
+      this.mensagemEntregas = `Entregador da entrega #${entrega.id_entrega} atualizado com sucesso.`;
       this.carregarEntregas();
 
       if (this.entregaHistoricoSelecionada === entrega.id_entrega) {
@@ -2564,7 +3304,14 @@ avancarEntrega(entrega: any) {
   ).subscribe({
     next: (entregaAtualizada) => {
       this.entregaEmAtualizacao = null;
-      this.mensagemEntregas = `Entrega #${entrega.id_entrega} atualizada para ${entregaAtualizada.status}.`;
+      const mensagens: Record<string, string> = {
+        EM_SEPARACAO: `Entrega #${entrega.id_entrega} enviada para separação.`,
+        PRONTA_PARA_ENTREGA: `Entrega #${entrega.id_entrega} marcada como pronta.`,
+        EM_ROTA: `Entrega #${entrega.id_entrega} colocada em rota.`,
+        ENTREGUE: `Entrega #${entrega.id_entrega} concluída com sucesso.`
+      };
+      this.mensagemEntregas = mensagens[entregaAtualizada.status] ||
+        `Entrega #${entrega.id_entrega} atualizada com sucesso.`;
       this.carregarEntregas();
 
       if (this.entregaHistoricoSelecionada === entrega.id_entrega) {
@@ -2662,6 +3409,130 @@ anexoEhArquivoInterno(anexo: string): boolean {
 
 obterNomeArquivo(anexo: string): string {
   return decodeURIComponent(anexo.split('/').pop() || 'arquivo-entrega');
+}
+
+podePreVisualizarAnexo(anexo: string): boolean {
+  const nome = this.obterNomeArquivo(anexo).toLowerCase().split('?')[0];
+  return this.anexoEhArquivoInterno(anexo) && /\.(png|jpe?g|webp)$/.test(nome);
+}
+
+visualizarArquivoEntrega(anexo: string, idEntrega: number): void {
+  if (!this.podePreVisualizarAnexo(anexo)) {
+    return;
+  }
+
+  const token = localStorage.getItem('token');
+  this.anexoPreVisualizacaoCarregando = idEntrega;
+  this.erroEntregas = '';
+
+  this.http.get(this.urlApi(anexo), {
+    headers: { Authorization: `Bearer ${token}` },
+    responseType: 'blob'
+  }).subscribe({
+    next: arquivo => {
+      this.liberarUrlPreVisualizacao();
+      this.anexoPreVisualizacaoUrl = URL.createObjectURL(arquivo);
+      this.anexoPreVisualizacaoNome = this.obterNomeArquivo(anexo);
+      this.anexoPreVisualizacaoCarregando = null;
+      this.cdr.detectChanges();
+    },
+    error: () => {
+      this.anexoPreVisualizacaoCarregando = null;
+      this.erroEntregas = 'Não foi possível visualizar o anexo da entrega.';
+      this.cdr.detectChanges();
+    }
+  });
+}
+
+carregarResumoMinhasEntregas(): void {
+  if (this.perfilUsuario !== 'ENTREGADOR') return;
+  const token = localStorage.getItem('token');
+  this.http.get<any>(this.urlApi('/entregas/minhas-resumo'), {
+    headers: { Authorization: `Bearer ${token}` }
+  }).subscribe({
+    next: resumo => {
+      this.resumoMinhasEntregas = resumo;
+      this.cdr.detectChanges();
+    },
+    error: () => {
+      this.resumoMinhasEntregas = {
+        hoje: this.contarAbaMinhasEntregas('hoje'),
+        em_rota: this.entregas.filter(item => item.status === 'EM_ROTA').length,
+        pendentes: this.entregas.filter(item => !['ENTREGUE', 'CANCELADA'].includes(item.status)).length,
+        concluidas_hoje: 0
+      };
+    }
+  });
+}
+
+selecionarAbaMinhasEntregas(aba: AbaMinhasEntregas): void {
+  this.abaMinhasEntregas = aba;
+  this.salvarEstadoNavegacao();
+}
+
+obterMinhasEntregasFiltradas(): any[] {
+  const hoje = this.formatarDataHoje();
+  const encerradas = ['ENTREGUE', 'CANCELADA'];
+  const filtradas = this.entregas.filter(entrega => {
+    if (this.abaMinhasEntregas === 'hoje') {
+      return entrega.data_agendada === hoje && !encerradas.includes(entrega.status);
+    }
+    if (this.abaMinhasEntregas === 'proximas') {
+      return Boolean(entrega.data_agendada && entrega.data_agendada > hoje) &&
+        !encerradas.includes(entrega.status);
+    }
+    if (this.abaMinhasEntregas === 'andamento') {
+      return ['PRONTA_PARA_ENTREGA', 'EM_ROTA', 'NAO_ENTREGUE'].includes(entrega.status);
+    }
+    return entrega.status === 'ENTREGUE';
+  });
+  return filtradas.sort((a, b) => {
+    const dataA = a.data_agendada || '9999-12-31';
+    const dataB = b.data_agendada || '9999-12-31';
+    return dataA.localeCompare(dataB) || b.id_entrega - a.id_entrega;
+  });
+}
+
+contarAbaMinhasEntregas(aba: AbaMinhasEntregas): number {
+  const atual = this.abaMinhasEntregas;
+  this.abaMinhasEntregas = aba;
+  const total = this.obterMinhasEntregasFiltradas().length;
+  this.abaMinhasEntregas = atual;
+  return total;
+}
+
+baixarArquivoPreVisualizado(): void {
+  if (!this.anexoPreVisualizacaoUrl) {
+    return;
+  }
+
+  const link = document.createElement('a');
+  link.href = this.anexoPreVisualizacaoUrl;
+  link.download = this.anexoPreVisualizacaoNome;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+alterarZoomPreVisualizacao(variacao: number): void {
+  this.zoomPreVisualizacao = Math.min(
+    3,
+    Math.max(0.5, Number((this.zoomPreVisualizacao + variacao).toFixed(1)))
+  );
+}
+
+fecharPreVisualizacao(): void {
+  this.liberarUrlPreVisualizacao();
+  this.cdr.detectChanges();
+}
+
+private liberarUrlPreVisualizacao(): void {
+  if (this.anexoPreVisualizacaoUrl) {
+    URL.revokeObjectURL(this.anexoPreVisualizacaoUrl);
+  }
+  this.anexoPreVisualizacaoUrl = null;
+  this.anexoPreVisualizacaoNome = '';
+  this.zoomPreVisualizacao = 1;
 }
 
 baixarArquivoEntrega(anexo: string, idEntrega: number) {
@@ -2762,6 +3633,7 @@ anexarComprovanteEntrega(entrega: any) {
         next: () => {
           this.entregaComprovanteEmAtualizacao = null;
           this.comprovantesSelecionados[entrega.id_entrega] = null;
+          this.fecharFormularioAuxiliarEntrega();
           this.mensagemEntregas = `Comprovante anexado à entrega #${entrega.id_entrega}.`;
           this.carregarEntregas();
 
@@ -3791,6 +4663,14 @@ obterStatusRelatorio(grupo: any): Array<{ status: string; total: number }> {
   }));
 }
 
+obterPercentualStatusRelatorio(grupo: any, total: number): number {
+  const maiorTotal = Math.max(
+    1,
+    ...this.obterStatusRelatorio(grupo).map(item => item.total)
+  );
+  return Math.round((Number(total) / maiorTotal) * 100);
+}
+
 carregarAuditoria() {
   const token = localStorage.getItem('token');
   this.carregandoAuditoria = true;
@@ -4107,10 +4987,12 @@ alterarPagina(
     Math.max(pagina, 1),
     this.obterTotalPaginas(totalItens, chave)
   );
+  this.salvarEstadoNavegacao();
 }
 
 reiniciarPagina(chave: ChavePaginacao): void {
   this.paginacao[chave].pagina = 1;
+  this.salvarEstadoNavegacao();
 }
 
 normalizarPesquisa(valor: unknown): string {
@@ -4164,6 +5046,40 @@ obterSolicitacoesFiltradas(): any[] {
     item => item.id_solicitacao,
     item => item.motivo || ''
   );
+}
+
+selecionarEtapaListagem(
+  listagem: 'solicitacoes' | 'pedidos' | 'entregas',
+  status: string
+): void {
+  if (listagem === 'solicitacoes') {
+    this.filtroSolicitacoes.status = status;
+  } else if (listagem === 'pedidos') {
+    this.filtroPedidos.status = status;
+  } else {
+    this.filtroEntregas.status = status;
+  }
+
+  this.reiniciarPagina(listagem);
+}
+
+contarRegistrosEtapa(registros: any[], status: string): number {
+  return status
+    ? registros.filter(registro => registro.status === status).length
+    : registros.length;
+}
+
+temFiltrosSolicitacoes(): boolean {
+  return Boolean(
+    this.filtroSolicitacoes.busca ||
+    this.filtroSolicitacoes.status ||
+    this.filtroSolicitacoes.ordem !== 'recentes'
+  );
+}
+
+limparFiltrosSolicitacoes(): void {
+  this.filtroSolicitacoes = { busca: '', status: '', ordem: 'recentes' };
+  this.reiniciarPagina('solicitacoes');
 }
 
 obterPedidosFiltrados(): any[] {
@@ -4299,7 +5215,7 @@ exportarPedidosCsv(): void {
 
 obterRecebimentosFiltrados(): any[] {
   return this.aplicarFiltroLista(
-    this.obterPedidosComStatusRecebimento(),
+    this.obterPedidosDisponiveisRecebimento(),
     this.filtroRecebimentos,
     item => `${item.id_pedido_compra} ${item.numero_pedido} ${item.status} ${this.obterNomeFornecedor(item.id_fornecedor)}`,
     item => item.status,
@@ -4665,6 +5581,39 @@ obterProdutosFiltrados(): any[] {
   );
 }
 
+temFiltrosCadastro(tipo: 'clientes' | 'fornecedores' | 'produtos' | 'usuarios'): boolean {
+  if (tipo === 'usuarios') {
+    return Boolean(
+      this.filtroUsuarios.busca ||
+      this.filtroUsuarios.status ||
+      this.filtroUsuarios.perfil ||
+      this.filtroUsuarios.ordem !== 'az'
+    );
+  }
+
+  const filtro = tipo === 'clientes'
+    ? this.filtroClientes
+    : tipo === 'fornecedores'
+      ? this.filtroFornecedores
+      : this.filtroProdutos;
+
+  return Boolean(filtro.busca || filtro.status || filtro.ordem !== 'az');
+}
+
+limparFiltrosCadastro(tipo: 'clientes' | 'fornecedores' | 'produtos' | 'usuarios'): void {
+  if (tipo === 'clientes') {
+    this.filtroClientes = { busca: '', status: '', ordem: 'az' };
+  } else if (tipo === 'fornecedores') {
+    this.filtroFornecedores = { busca: '', status: '', ordem: 'az' };
+  } else if (tipo === 'produtos') {
+    this.filtroProdutos = { busca: '', status: '', ordem: 'az' };
+  } else {
+    this.filtroUsuarios = { busca: '', status: '', perfil: '', ordem: 'az' };
+  }
+
+  this.reiniciarPagina(tipo);
+}
+
 obterNotificacoesFiltradas(): any[] {
   return this.aplicarFiltroLista(
     this.notificacoes,
@@ -4674,6 +5623,19 @@ obterNotificacoesFiltradas(): any[] {
     item => item.id_notificacao,
     item => item.titulo || ''
   );
+}
+
+temFiltrosNotificacoes(): boolean {
+  return Boolean(
+    this.filtroNotificacoes.busca ||
+    this.filtroNotificacoes.status ||
+    this.filtroNotificacoes.ordem !== 'recentes'
+  );
+}
+
+limparFiltrosNotificacoes(): void {
+  this.filtroNotificacoes = { busca: '', status: '', ordem: 'recentes' };
+  this.reiniciarPagina('notificacoes');
 }
 
 obterUsuariosFiltrados(): any[] {
@@ -4694,6 +5656,7 @@ obterUsuariosFiltrados(): any[] {
 classeStatus(status: string): string {
   const statusSucesso = [
     'APROVADA',
+    'PEDIDO_REALIZADO',
     'RECEBIDO_TOTAL',
     'ENTREGUE',
     'ATIVO',
@@ -4849,6 +5812,7 @@ tituloTelaAtual(): string {
     'novo-pedido': 'Novo pedido',
     recebimentos: 'Recebimentos',
     entregas: 'Entregas',
+    'minhas-entregas': 'Minhas entregas',
     'nova-entrega': 'Nova entrega',
     clientes: 'Clientes',
     'formulario-cliente': this.clienteEmEdicaoId === null
@@ -4882,9 +5846,21 @@ fecharMenuMobile(): void {
   this.menuMobileAberto = false;
 }
 
-  abrirTela(tela: string) {
+  abrirTela(tela: string, registrarHistorico = true) {
+    if (!this.telaPermitida(tela)) tela = this.telaInicialPerfil();
+    if (this.telaAtual !== tela) this.salvarEstadoNavegacao();
     this.telaAtual = tela;
+    if (
+      registrarHistorico &&
+      new URLSearchParams(window.location.search).get('tela') !== tela
+    ) {
+      const url = `/sistema?tela=${encodeURIComponent(tela)}`;
+      window.history.pushState({ tela }, '', url);
+    }
     this.fecharMenuMobile();
+    this.fecharPainelDetalhes();
+    this.fecharPreVisualizacao();
+    this.fecharFormularioAuxiliarEntrega();
 
   if (tela === 'minha-conta') {
     this.erroMinhaConta = '';
@@ -4915,6 +5891,7 @@ fecharMenuMobile(): void {
   if (tela === 'nova-solicitacao') {
     this.erroNovaSolicitacao = '';
     this.carregarProdutos();
+    this.verificarRascunho('solicitacao');
   }
 
   if (tela === 'pedidos') {
@@ -4933,9 +5910,11 @@ fecharMenuMobile(): void {
     if (!this.solicitacoes.length || !this.fornecedores.length) {
       this.carregarPedidos();
     }
+    this.verificarRascunho('pedido');
   }
 
   if (tela === 'recebimentos') {
+    this.recebimentoHistoricoExpandido = null;
     this.mensagemRecebimentos = '';
     this.carregarRecebimentos();
   }
@@ -4949,12 +5928,18 @@ fecharMenuMobile(): void {
     this.carregarEntregas();
   }
 
+  if (tela === 'minhas-entregas') {
+    this.mensagemEntregas = '';
+    this.carregarEntregas();
+  }
+
   if (tela === 'nova-entrega') {
     this.erroNovaEntrega = '';
 
     if (!this.clientes.length || !this.usuariosResumo.length) {
       this.carregarEntregas();
     }
+    this.verificarRascunho('entrega');
   }
 
   if (tela === 'clientes') {
@@ -4992,6 +5977,12 @@ fecharMenuMobile(): void {
     this.mensagemAuditoria = '';
     this.carregarAuditoria();
   }
+
+  window.setTimeout(() => {
+    if (!navigator.userAgent.toLowerCase().includes('jsdom')) {
+      window.scrollTo({ top: this.posicoesRolagem[tela] || 0, behavior: 'auto' });
+    }
+  }, 0);
 }
 
   obterNomeProduto(idProduto: number): string {
@@ -5048,6 +6039,8 @@ obterNomeFornecedor(idFornecedor: number): string {
   }).subscribe({
     next: (resposta) => {
 
+  this.descartarRascunho('solicitacao');
+
   this.criandoSolicitacao = false;
 
   this.novaSolicitacao = {
@@ -5063,6 +6056,7 @@ obterNomeFornecedor(idFornecedor: number): string {
 };
 
   this.telaAtual = 'solicitacoes';
+  window.history.pushState({ tela: 'solicitacoes' }, '', '/sistema?tela=solicitacoes');
 
   this.mensagemSolicitacoes = `Solicitação #${resposta.id_solicitacao} criada com sucesso!`;
 
